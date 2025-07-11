@@ -23,7 +23,7 @@ const Login = () => {
   const mutation = useMutation(
     async (loginData) => {
       setLoading(true);
-      const response = await api.post("https://deploy-api-five.vercel.app/api/users/login", loginData);
+      const response = await api.post("http://localhost:7000/api/users/login", loginData);
       return response.data;
     },
     {
