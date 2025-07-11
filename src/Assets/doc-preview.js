@@ -1,0 +1,3 @@
+/* This is a placeholder for a document preview image. In a real application, you would use a screenshot or a generated preview. */
+const docPreview = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ3aGl0ZSIgLz48dGV4dCB4PSIxMCIgeT0iMjAiIGZvbnQtZmFtaWx5PSJhcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iYmxhY2siPkxPUkVNIElQU1VNPC90ZXh0Pjwvc3ZnPg==';
+export default docPreview; 

@@ -1,0 +1,218 @@
+.nav-bar {
+    display: flex;
+    gap: 0px;
+    border: 0px 0px 1px 0px;
+    opacity: 0px;
+    border-bottom: 1px solid #E1E6EF;
+    padding: 6px;
+  }
+  .icon {
+    width: 24px;
+    height: 24px;
+    padding: 4px 3px 4px 3px;
+    gap: 0px;
+    opacity: 0px;
+    margin-left: 10px;
+  
+  }
+  .Business {
+    align-items: center;
+    margin-top: 8px;
+  }
+  .Layout {
+    display: flex;
+    flex-direction: row;
+    opacity: 0px;
+    align-items: center;
+    justify-content: space-between;
+    margin-left: 380px;
+  }
+  .generate {
+    display: flex;
+    justify-content: space-between;
+    opacity: 0px;
+    font-size: 14px;
+    font-weight: 400;
+  }
+  .business {
+    display: flex;
+    justify-content: space-between;
+    opacity: 0px;
+    font-size: 14px;
+    font-weight: 400;
+    margin-left: 30px;
+  }
+  
+  .plans {
+    display: flex;
+    justify-content: space-between;
+    opacity: 0px;
+    font-size: 14px;
+    font-weight: 400;
+    margin-left: 30px;
+    width: 150px;
+  }
+  
+  .learn {
+    display: flex;
+    justify-content: space-between;
+    opacity: 0px;
+    font-size: 14px;
+    font-weight: 400;
+    margin-left: 30px;
+  }
+  .arrow {
+    width: 24px;
+    height: 24px;
+    padding: 0px 7.76px 0px 7.76px;
+    gap: 0px;
+    opacity: 0px;
+    align-items: center;
+  }
+  
+  .button {
+    width: 132px;
+    height: Hug (38px)px;
+    padding: 7px 16px 7px 16px;
+    gap: 8px;
+    border-radius: 10px;
+    border: 1px 0px 0px 0px;
+    opacity: 0px;
+    border: 1px solid #2F6FED;
+    background: #4A47FF;
+    color: #ffffff;
+    margin-left: 340px;
+    margin-top: 6px;
+  }
+  
+  .notification {
+    width: 20px;
+    height: 20px;
+    gap: 0px;
+    opacity: 0px;
+    margin-top: 6px;
+    margin-left: 40px;
+    padding: 5px 6px 5px 6px;
+    border-radius: 12px;
+    border: 1px;
+    opacity: 0px;
+    border: 1px solid #E1E6EF
+  }
+  .profile-container {
+    display: flex;
+    align-items: center;
+    width: 250px;
+    height: 74px;
+    border: 1px solid #E1E6EF;
+  }
+  
+  .profile-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-left: 10px;
+  }
+  
+  .profile-text {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .profile-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    margin-left: 15px
+  }
+  
+  .profile-role {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    margin-left: 15px;
+
+  }
+  .arrow-icon{
+    width: 24px;
+    height: 24px;
+    padding: 0px 8px 0px 8px;
+    gap: 0px;
+    opacity: 0px;
+    margin-left: 50px;
+  }
+  .home-container{
+
+    width: 227px;
+    height: 750px;
+    padding: 8px 12px 8px 12px;
+    border-radius: 0px 0px 0px 0px;
+    border: 1px solid #E1E6EF;
+    /* cursor: pointer; */
+  }
+  .home-icon{
+    width: 20px;
+    height: 20px;
+    gap: 0px;
+    opacity: 0px;
+    margin-left: 10px;
+    margin-top: 10px;
+  }
+  .home-text{
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    text-align: left;
+    margin-top: 8px;
+    margin-left: 10px;
+    color: #4A505C;
+  }
+  .project-icon{
+    width: 20px;
+    height: 20px;
+    gap: 0px;
+    opacity: 0px;
+  }
+  .project-text{
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    text-align: left;
+    color: #4A505C;
+
+  }
+  .project-container{
+    display: flex;
+    flex-direction: row;
+    width: 246px;
+    height:38px;
+    padding: 8px 12px 8px 12px;
+    gap: 12px;
+    border-radius: 12px 0px 0px 0px;
+    opacity: 0px;
+    margin-top: 20px;
+    
+  }
+  .home{
+    display: flex;
+    flex-direction: row;
+  }
+  .template-container{
+    display: flex;
+    width: 246px;
+    height:38px;
+    padding: 8px 12px 8px 12px;
+    padding: 4px 4px 4px 8px;
+    gap: 12px;
+    opacity: 0px;
+  }
+  .template-icon{
+    width: 20px;
+    height: 20px;
+    gap: 0px;
+    opacity: 0px;
+  }
+  .template-text{
+    font-size: 14px;
+    font-weight: 400;
+    color: #4A505C;
+  }
