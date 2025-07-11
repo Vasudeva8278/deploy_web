@@ -12,13 +12,15 @@ const VerifyEmail = () => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
     if (token) {
-      api.get(`/users/verify-email/${token}`)
+      api.get(`/users/verify-email?token=${token}`)
         .then(res => {
           setMessage("Email verified! You can now log in.");
           setTimeout(() => navigate("/login"), 2000);
         })
         .catch(err => {
-          setMessage("Verification failed or link expired.");
+          setMessage(
+            err.response?.data?.message || "Verification failed or link expired."
+          );
         });
     } else {
       setMessage("Invalid verification link.");

@@ -537,7 +537,9 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
         <Instructions handleExportAll={handleExportAll} viewAllDocument={viewAllDocument} displayListofDocuments={displayListofDocuments} />
       </div>*/}
     </div>
+  
   );
 };
 
 export default HighlightTable;
+  

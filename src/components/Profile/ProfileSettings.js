@@ -9,8 +9,11 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import photo from '../../Assets/general_profile.png';
 import { AuthContext } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+
 
 const ProfileSettings = ({ onClose }) => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [addressError, setAddressError] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -189,13 +192,36 @@ const ProfileSettings = ({ onClose }) => {
     document.getElementById("imageUpload").click();
   };
 
-  // Add a fallback close handler if onClose is not provided
-  const handleClose = () => {
+  const featureRouteMap = {
+    'viewDashboard': '/dashboard',
+    'projects': '/projects',
+    'Clients': '/clients',
+    'Templates': '/Neo',
+    'Documents': '/NeoDocements',
+    'Users': '/user-manage',
+    'viewProfile': '/profile',
+    'viewOrganizations': '/organizations',
+  };
+
+  const handleClose = async () => {
     if (onClose) {
       onClose();
+    } else if (user && user.role) {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/roles/${user.role}`);
+        const features = res.data.features || [];
+        if (features.length > 0 && featureRouteMap[features[0]]) {
+          navigate(featureRouteMap[features[0]]);
+          return;
+        }
+      } catch (err) {
+        // fallback below
+      }
+      // Fallback: go to dashboard or home
+      navigate('/dashboard');
     } else {
-      // Placeholder: you can replace this with navigation or hiding logic
-      console.log('Close ProfileSettings');
+      // Fallback: go to dashboard or home
+      navigate('/dashboard');
     }
   };
 

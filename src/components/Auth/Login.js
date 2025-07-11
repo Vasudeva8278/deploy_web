@@ -20,10 +20,13 @@ const Login = () => {
   const { token } = useContext(AuthContext);
   const isAuthenticated = !!token;
 
+  const BASE_URL = 'http://localhost:7000';
+  
   const mutation = useMutation(
     async (loginData) => {
       setLoading(true);
-      const response = await api.post("http://localhost:7000/api/users/login", loginData);
+      const response = await api.post(`${BASE_URL}/api/users/login`, loginData);
+      console.log("response:", BASE_URL);
       return response.data;
     },
     {

@@ -7,12 +7,14 @@ import 'react-toastify/dist/ReactToastify.css';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import bannerImage from "../Assets/Banner.jpg";
-import { FaTrash, FaEdit, FaSave } from 'react-icons/fa';
+import { FaTrash, FaEdit, FaSave, FaUserCircle, FaEye } from 'react-icons/fa';
 import { useCallback } from 'react';
+import photo from '../Assets/general_profile.png';
+import UserCard from '../components/UserCard';
 
 
 const api = axios.create({
-  baseURL: "http://http://13.201.64.165:7000/api/users/getalluser", // updated baseURL
+  baseURL: `${process.env.REACT_APP_BASE_URL}/api/users/getalluser`, // updated baseURL
 });
 
 const NEO_EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
@@ -34,13 +36,14 @@ const UserManage = () => {
   const [editRole, setEditRole] = useState({});
   const [roles, setRoles] = useState([]);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [viewUserId, setViewUserId] = useState(null);
 
   // Fetch roles and their features
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const res = await axios.get('http://localhost:7000/api/roles/');
-        setRoles(res.data);
+        const rolesRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/roles/`);
+        setRoles(rolesRes.data);
       } catch (error) {
         toast.error('Failed to fetch roles');
       } finally {
@@ -59,7 +62,7 @@ const UserManage = () => {
       ? role.features.filter(f => f !== feature)
       : [...(role.features || []), feature];
     try {
-      await axios.put(`http://localhost:7000/api/roles/${roleId}`, { features: updatedFeatures });
+      await axios.put(`${process.env.REACT_APP_BASE_URL}/api/roles/${roleId}`, { features: updatedFeatures });
       setRoles(roles.map(r => r._id === roleId ? { ...r, features: updatedFeatures } : r));
       toast.success('Role features updated!');
     } catch (error) {
@@ -70,8 +73,14 @@ const UserManage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axios.get('http://13.201.64.165:7000/api/users/getalluser');
-        setUsers(res.data);
+        const profilesRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/users/getalluser`);
+        console.log('profilesRes.data:', profilesRes.data);
+        // Use the array of users from the backend
+        if (profilesRes.data && Array.isArray(profilesRes.data.users)) {
+          setUsers(profilesRes.data.users);
+        } else {
+          setUsers([]);
+        }
       } catch (error) {
         setError(error);
       } finally {
@@ -89,7 +98,7 @@ const UserManage = () => {
     try {
       const newRole = editRole[id];
       if (!newRole) return;
-      const res = await axios.put(`http://13.201.64.165:7000/api/users/update-status/${id}`, { role: newRole });
+      const updateRes = await axios.put(`${process.env.REACT_APP_BASE_URL}/api/users/update-status/${id}`, { role: newRole });
       setUsers(users.map(user => user._id === id ? { ...user, role: newRole } : user));
       setEditRole({ ...editRole, [id]: undefined });
       toast.success('User role updated successfully!');
@@ -101,7 +110,7 @@ const UserManage = () => {
 
   const handleDeleteUser = async (id) => {
     try {
-      const res = await axios.delete(`http://13.201.64.165:7000/api/users/delete/${id}`);
+      const deleteRes = await axios.delete(`${process.env.REACT_APP_BASE_URL}/api/users/delete/${id}`);
       setUsers(users.filter(user => user._id !== id));
       toast.success('User deleted successfully!');
     } catch (error) {
@@ -116,6 +125,11 @@ const UserManage = () => {
   return (
     <>
     <ToastContainer />
+    {viewUserId && (
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <UserCard userid={viewUserId} onClose={() => setViewUserId(null)} />
+      </div>
+    )}
     <div>
       
       
@@ -126,6 +140,7 @@ const UserManage = () => {
           <table className="equipment-table">
             <thead>
               <tr>
+             
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
@@ -136,6 +151,7 @@ const UserManage = () => {
             <tbody>
               {[...Array(3)].map((_, idx) => (
                 <tr key={idx}>
+                  <td><Skeleton circle width={40} height={40} /></td>
                   <td><Skeleton width={80} /></td>
                   <td><Skeleton width={180} /></td>
                   <td><Skeleton width={100} /></td>
@@ -152,56 +168,75 @@ const UserManage = () => {
           <table className="equipment-table">
             <thead>
               <tr>
+               
+             
                 <th>Name</th>
                 <th>Email</th>
-                <th >Role</th>
+                <th>Role</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {users.filter(u => user && (u._id !== user._id && u._id !== user.id)).map((u) => {
-                const canEdit = true;
-                return (
+              {users
+                .filter(u => user && (u._id !== user._id && u._id !== user.id && u.email !== user.email))
+                .map((u) => (
                   <tr key={u._id}>
-                    <td>{u.name}</td>
+                    <td style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {u.profilePic && u.profilePic.trim() !== "" ? (
+                        <img
+                          src={u.profilePic}
+                          alt="Profile"
+                          className="w-8 h-8 rounded-full object-cover"
+                          onError={e => { e.target.onerror = null; e.target.src = photo; }}
+                        />
+                      ) : (
+                        <FaUserCircle size={32} color="#bbb" />
+                      )}
+                      <span>{u.name || u.firstName || ""} {u.lastName || ""}</span>
+                    </td>
                     <td>{u.email}</td>
                     <td>
                       {editRole[u._id] !== undefined ? (
                         <select
                           value={editRole[u._id]}
                           onChange={e => handleRoleChange(u._id, e.target.value)}
-                          className="border rounded px-2 py-1"
                         >
-                          <option value='' disabled>Select new role</option>
                           {roleOptions.map(option => (
                             <option key={option.value} value={option.value}>{option.label}</option>
                           ))}
                         </select>
                       ) : (
-                        u.role === NEO_EXPERT_ROLE_ID ? 'Neo Expert' : u.role === NEO_EXECUTIVE_ROLE_ID ? 'Neo Executive' : u.role === SUPER_ADMIN_ROLE_ID ? 'Admin' : 'Admin'
+                        u.role === NEO_EXPERT_ROLE_ID ? 'Neo Expert' :
+                        u.role === NEO_EXECUTIVE_ROLE_ID ? 'Neo Executive' :
+                        u.role === SUPER_ADMIN_ROLE_ID ? 'Admin' :
+                        (u.role?.name || u.role || 'User')
                       )}
                     </td>
-                    <td>
-                      <button className="delete-btn mr-2" title="Delete" onClick={() => handleDeleteUser(u._id)}>
-                        <FaTrash />
+                    <td style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => setViewUserId(u._id)} title="View" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#007bff' }}>
+                        <FaEye size={20} />
                       </button>
-                      {canEdit ? (
-                        editRole[u._id] !== undefined ? (
-                          <button className="save-btn" title="Save" onClick={() => handleUpdateUser(u._id)} disabled={!editRole[u._id]}>
-                            <FaSave />
-                          </button>
-                        ) : (
-                          <button className="edit-btn" title="Edit" onClick={() => setEditRole({ ...editRole, [u._id]: u.role })}>
-                            <FaEdit />
-                          </button>
-                        )
+                      {editRole[u._id] !== undefined ? (
+                        <FaSave
+                          style={{ cursor: 'pointer', color: 'green' }}
+                          title="Save"
+                          onClick={() => handleUpdateUser(u._id)}
+                        />
                       ) : (
-                        <button className="edit-btn" disabled><FaEdit /></button>
+                        <FaEdit
+                          style={{ cursor: 'pointer' }}
+                          title="Edit"
+                          onClick={() => handleRoleChange(u._id, u.role)}
+                        />
                       )}
+                      <FaTrash
+                        style={{ cursor: 'pointer', color: 'red' }}
+                        title="Delete"
+                        onClick={() => handleDeleteUser(u._id)}
+                      />
                     </td>
                   </tr>
-                );
-              })}
+                ))}
             </tbody>
           </table>
         </div>
