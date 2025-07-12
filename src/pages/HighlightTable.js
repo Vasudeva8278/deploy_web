@@ -112,13 +112,19 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   const handleDeleteDocument = async (doc) => {
     setBlurPage(true);
     const doc_id = doc.id ? doc.id : doc._id;
-    console.log("Deleting document", projectId, doc_id);
-    const response = await deleteDocument(projectId, doc_id);
-    if (response) {
-      window.location.reload();
-    } else {
-      setBlurPage(false);
+    try {
+      const response = await deleteDocument(projectId, doc_id);
+      if (response) {
+        // Remove the deleted row from tableData
+        setTableData(prev =>
+          prev.filter(row => (row.id || row._id) !== doc_id)
+        );
+      }
+    } catch (error) {
+      console.error("Delete failed", error);
+      // Optionally show an error message
     }
+    setBlurPage(false);
   };
   const handleViewDocument = async (doc) => {
     const doc_id = doc.id ? doc.id : doc._id;
@@ -335,6 +341,7 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
                         <div className='flex items-center'>
                           {tableData.length > 1 && (
                             <button
+                              type="button"
                               className='bg-transparent text-red-400 rounded hover:bg-white transition-colors m-2 flex items-center'
                               onClick={() => handleDeleteDocument(row)}
                             >

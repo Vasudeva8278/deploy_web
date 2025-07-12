@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { MdKeyboardArrowDown, MdArrowDropDown } from "react-icons/md";
 import { RiMenuFill, RiLayout4Line } from "react-icons/ri";
 import { IoNotifications } from "react-icons/io5";
@@ -9,34 +9,34 @@ import {
   FaRegFolderOpen,
   FaDownload,
   FaTrash,
+  FaMagic,
 } from "react-icons/fa";
 import { GoHome } from "react-icons/go";
-import { FileText, Sparkles } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import CanvasThumbnails from "./CanvasThumbnails";
-import photo from "../Assets/photo.png";
+
 import * as docx from "docx-preview";
 import TemplateCards from "./Template/TemplateCards";
 import axios from "axios";
 import {
-  createNeoTemplate,
-  deleteTemplateById,
+  createTemplate,
+  deleteTemplate,
+  getHomePageTemplates,
   getAllTemplates,
 } from "../services/templateApi";
 import {
-  deleteDocument1,
-  downloadDocument1,
-  getDocumentsWithTemplateNames,
+  deleteDocument,
+  downloadDocument,
+  getHomePageDocuments,
 } from "../services/documentApi";
 import SearchHeader from "./SearchHeader";
+import ViewTemplatesHighlights from "./Template/ViewTemplatesHighlights";
+import NeoModal from "./NeoModal";
+import { FileText } from 'lucide-react';
 import DesignTemplate from './DesignTemplate';
 import GenerateDocument from './GenerateDocument';
-import NeoModal from './NeoModal';
-import { AuthContext } from "../context/AuthContext";
 
-const EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
-
-const NeoTemplate = () => {
+const NeoTemplates = () => {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [recentDocuments, setRecentDocuments] = useState([]);
@@ -48,20 +48,19 @@ const NeoTemplate = () => {
   const contentRef = useRef(null);
   const [conversionStatus, setConversionStatus] = useState("");
   const [uploading, setUploading] = useState(false);
-  
-  // Modal states for design template functionality
+  const location = useLocation();
+  const projectData = location.state?.data;
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [displayPage, setDisplayPage] = useState("");
-  const [selectedProject, setSelectedProject] = useState('');
-  const { user } = useContext(AuthContext);
-
   const openModal = (page) => {
     setDisplayPage(page);
     setIsModalOpen(true);
   };
+  const [displayPage, setDisplayPage] = useState("");
+  const [selectedProject, setSelectedProject] = useState('');
 
+  /*
   const handleSelectDocument = (docId) => {
-    navigate(`/document/${docId}`);
+    navigate(`/document/${docId}?projectId=${projectData._id}`);
   };
 
   const handleExport = (docId) => {
@@ -77,17 +76,17 @@ const NeoTemplate = () => {
     setIsDragging(true);
   };
 
-  const handleDragEnter = (e) => {
+    const handleDragEnter = (e) => {
     e.preventDefault();
     setIsDragging(true);
-  };
+  }; 
 
-  const handleDragLeave = (e) => {
+     const handleDragLeave = (e) => {
     e.preventDefault();
     setIsDragging(false);
-  };
+  }; 
 
-  const handleDrop = (e) => {
+    const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
     const files = e.dataTransfer.files;
@@ -95,16 +94,16 @@ const NeoTemplate = () => {
       const file = files[0];
       onGetFile(file);
     }
-  };
+  }; 
 
-  const handleFileChange = (e) => {
+   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       onGetFile(file);
     }
-  };
+  }; 
 
-  const onGetFile = async (file) => {
+    const onGetFile = async (file) => {
     setFile(file);
     setUploading(true);
 
@@ -132,6 +131,7 @@ const NeoTemplate = () => {
     };
 
     try {
+      console.log("options for docx to html conversion", options);
       await docx.renderAsync(file, container, null, options);
       console.log("docx: finished");
       console.log(container.innerHTML);
@@ -187,17 +187,18 @@ const NeoTemplate = () => {
     } catch (error) {
       console.error("docx rendering error:", error);
     }
-  };
+  }; */
 
   useEffect(() => {
     fetchTemplates();
     fetchDocuments();
-  }, []);
+  }, [projectData]);
 
   const fetchDocuments = async () => {
     try {
-      const response = await getDocumentsWithTemplateNames();
+      const response = await getHomePageDocuments(projectData._id);
       const data = response;
+
       setDocTemplates(data);
     } catch (error) {
       setError("Failed to fetch documents");
@@ -209,17 +210,10 @@ const NeoTemplate = () => {
   const fetchTemplates = async () => {
     try {
       const response = await getAllTemplates();
-      const data = response;
-      setDocuments(data);
-      const sortedData = data.sort((a, b) => {
-        if (!a.updatedTime) return 1;
-        if (!b.updatedTime) return -1;
-        return new Date(b.updatedTime) - new Date(a.updatedTime);
-      });
-      setRecentDocuments(sortedData);
+      setDocuments(response); // response is the array of all templates
     } catch (error) {
-      setError("Failed to fetch documents");
-      console.error("Failed to fetch documents", error);
+      setError("Failed to fetch templates");
+      console.error("Failed to fetch templates", error);
     } finally {
       setLoading(false);
     }
@@ -227,8 +221,8 @@ const NeoTemplate = () => {
   const handleDeleteTemplate = async (docId) => {
     console.log(`Deleting `, docId);
     try {
-      const response = await deleteTemplateById(docId);
-      if (response) {
+      const response = await deleteTemplate(projectData._id, docId);
+      if (response.status === 204) {
         setDocuments((prevDocuments) =>
           prevDocuments.filter((doc) => doc._id !== docId)
         );
@@ -240,25 +234,35 @@ const NeoTemplate = () => {
       console.error("Failed to delete document", error);
     }
   };
+
+  const handleGenerateDocs = () => {
+    navigate(`/viewAllHighlights`, {
+      state: {
+        project: projectData,
+      },
+    });
+  };
+
   const handleDeleteDocument = async (doc_id) => {
     console.log("deleteing document", doc_id);
-    const response = await deleteDocument1(doc_id);
+    const response = await deleteDocument(projectData._id, doc_id);
     if (response) {
       fetchTemplates();
       fetchDocuments();
     }
   };
-  const convertFiled = async (content, file) => {
+
+  /*   const convertFiled = async (content, file) => {
     setConversionStatus("Converting...");
     const formData = new FormData();
     formData.append("docxFile", file);
     formData.append("content", content);
 
     try {
-      const response = await createNeoTemplate(formData);
+      const response = await createTemplate(projectData._id, formData);
       if (response) {
         setUploading(false);
-        const result = response; // await response.json();
+        const result = response;
         handleSelectDocument(result._id);
 
         setConversionStatus(
@@ -270,15 +274,15 @@ const NeoTemplate = () => {
     } catch (error) {
       setConversionStatus("An error occurred during conversion.");
     }
-  };
+  }; */
 
   const handleDocumentDownload = async (docObj) => {
     try {
       const id = docObj._id;
       const fileName = docObj.fileName;
-      const response = await downloadDocument1(id);
+      const response = await downloadDocument(id, fileName);
 
-      const blob = new Blob([response.data], {
+      const blob = new Blob([response], {
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
       const url = window.URL.createObjectURL(blob);
@@ -294,178 +298,142 @@ const NeoTemplate = () => {
     }
   };
 
+  const handleCreateDocument = (templateId) => {
+    // Navigate to a document creation page with the templateId
+    navigate(`/create-document/${templateId}`);
+  };
+
   return (
-    <div className='flex w-[100%]'>
-      <div className='hidden flex flex-col items-start border-r border-gray-200'>
-        <div className='flex items-center w-64 h-20 border-b border-gray-300'>
-          <img
-            src={photo}
-            alt='Profile'
-            className='w-12 h-12 rounded-full ml-2'
+    <>
+      <div className='flex'>
+        <div className='flex flex-col w-full'>
+          <div className='flex text-gray-400 text-xs p-3 '>
+            {projectData?.projectName || "All Templates"}
+          </div>
+          {/*   <div className="bg-gradient-to-r from-purple-500 to-blue-500 h-52 rounded-lg mt-4 ml-4 p-10 hidden" style={{height:'220px'}}>
+      
+      <div className="relative w-[500px] mx-auto " style={{width:'500px'}}>
+  
+  <BsSearch className="absolute h-max top-1/2 left-5 transform -translate-y-1/2 pointer-events-none" />
+  <input
+    className="w-full pl-10 py-2 border border-gray-300 rounded-full text-sm outline-none"
+    placeholder="Search"
+  />
+</div>
+
+  <div className="flex mt-4 ">
+
+    <div className="flex flex-col items-center mb-4 w-full ">
+      <div
+        className={`flex flex-col items-center justify-center w-52 h-24 border-gray-500     shadow-lg rounded-lg text-white mx-4 ${isDragging ? 'border-green-500 bg-blue-100' : 'border-white'}`}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div className="text-center py-10 relative w-full mb-10" >
+          <input
+            type="file"
+            name="docxFile"
+            accept=".docx, .pdf"
+            onChange={handleFileChange}
+            className="opacity-0 absolute inset-0 cursor-pointer border border-gray-300 shadow-lg shadow-white"
           />
-          <div className='flex flex-col ml-4'>
-           
-          </div>
-          <MdArrowDropDown className='w-6 h-6 ml-4' />
-        </div>
-        <div className='mt-4 w-64 px-3'>
-          <div className='flex items-center w-full pl-3 hover:bg-blue-100 rounded-lg'>
-            <GoHome className='w-5 h-5' />
-            <div className='ml-2 text-sm font-semibold py-2'>Home</div>
-          </div>
-          <div className='flex items-center w-full pl-3 mt-2 hover:bg-blue-100 rounded-lg'>
-            <FaRegFolderOpen className='w-5 h-5' />
-            <div
-              className='ml-2 text-sm text-gray-700 py-2'
-              onClick={handleProjects}
-            >
-              Projects
-            </div>
-          </div>
-          <div className='flex items-center w-full pl-3 mt-2 hover:bg-blue-100 rounded-lg'>
-            <RiLayout4Line className='w-5 h-5' />
-            <div className='flex items-center justify-between w-full'>
-         
-            </div>
-          </div>
+          <button className="mt-2 px-4 py-2 text-white rounded hover:bg-blue-700 justify-between">
+            <FaUpload className="m-6 mb-1 text-white" /><span>Upload</span>
+          </button>
         </div>
       </div>
-
-      <div className='flex flex-col w-full m-2'>
-        {/* Add Design Template and Generate Documents buttons */}
-      
-     
-       
-        <div
-          className='bg-gradient-to-r from-purple-500 to-blue-500 h-52 rounded-lg mt-4 ml-4 p-10 hidden'
-          style={{ height: "220px" }}
-        >
-          <div
-            className='relative w-[500px] mx-auto '
-            style={{ width: "500px" }}
-          >
-            <BsSearch className='absolute h-max top-1/2 left-5 transform -translate-y-1/2 pointer-events-none' />
-            <input
-              className='w-full pl-10 py-2 border border-gray-300 rounded-full text-sm outline-none'
-              placeholder='Search'
-            />
-          </div>
-
-          <div className='flex mt-4 '>
-            <div className='flex flex-col items-center mb-4 w-full '>
-              <div
-                className={`flex flex-col items-center justify-center w-52 h-24 border-gray-500     shadow-lg rounded-lg text-white mx-4 ${
-                  isDragging ? "border-green-500 bg-blue-100" : "border-white"
-                }`}
-                onDragOver={handleDragOver}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <div className='text-center py-10 relative w-full mb-10'>
-                  <input
-                    type='file'
-                    name='docxFile'
-                    accept='.docx, .pdf'
-                    onChange={handleFileChange}
-                    className='opacity-0 absolute inset-0 cursor-pointer border border-gray-300 shadow-lg shadow-white'
-                  />
-                  <button className='mt-2 px-4 py-2 text-white rounded hover:bg-blue-700 justify-between'>
-                    <FaUpload className='m-6 mb-1 text-white' />
-                    <span>Upload</span>
-                  </button>
-                </div>
-              </div>
-              {uploading && (
-                <div className='fixed inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 z-50'>
-                  <div className='loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32'></div>
-                </div>
-              )}
-              <div
-                id='container'
-                style={{
-                  overflowY: "auto",
-                  border: "1px solid #ccc",
-                  marginTop: "20px",
-                  padding: "20px",
-                  position: "relative",
-                  display: "none",
-                }}
-                ref={contentRef}
-              ></div>
-            </div>
-          </div>
-        </div>
-        <div className='flex flex-col p-4 space-y-8'>
-          <div className='w-full max-w-5xl'>
-            <div className="flex justify-between"> 
-            <h2 className='text-2xl font-semibold mb-4 text-left'>
-               Templates
-            </h2>
-
-            <div >
-      
-      {!(user && user.role === EXECUTIVE_ROLE_ID) && (
-
-        <button
-          onClick={() => openModal('designTemplates')}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
-        >
-          <FileText className="w-5 h-5" />
-          Design Template
-        </button>
+      {uploading && (
+         <div className="fixed inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 z-50">
+         <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+       </div>
       )}
-      
+      <div
+        id="container"
+        style={{
+          overflowY: 'auto',
+          border: '1px solid #ccc',
+          marginTop: '20px',
+          padding: '20px',
+          position: 'relative',
+          display: 'none',
+        }}
+        ref={contentRef}
+      ></div>
     </div>
-            </div>
+  </div>
+</div> */}
+          <div className='flex flex-col p-4 space-y-8'>
+            <div className='w-full max-w-7xl'>
+            <div className='md:flex justify-between'>
+              <h2 className='text-2xl font-semibold mb-4 text-left'>
+                Templates
+              </h2>
             
-            <div className='flex justify-center'>
-              {loading && <div>Loading...</div>}
-              <TemplateCards
-                documents={documents}
-                handleDeleteTemplate={handleDeleteTemplate}
-              />
+              <button
+            onClick={() => openModal('designTemplates')}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
+          >
+            <FileText className="w-5 h-5" />
+            Design Template
+          </button>
+              </div>
+              <div className='flex justify-center mt-2'>
+                {loading && <div>Loading...</div>}
+                {documents.length === 0 && !loading && (
+                  <div className="text-center text-gray-500 ">No templates found.</div>
+                )}
+                <TemplateCards
+                  documents={documents}
+                  handleDeleteTemplate={handleDeleteTemplate}
+                  handleCreateDocument={handleCreateDocument}
+                />
+              </div>
             </div>
-          </div>
-          {/* 
-  <div className="w-full max-w-4xl">
-    <h2 className="text-2xl font-semibold mb-4 text-left">Recent Docs</h2>
-    <div className="flex justify-center space-x-6">
-    {loading && <div>Loading...</div>}
-      <TemplateCards documents={recentDocuments} handleDeleteTemplate={handleDeleteTemplate} />
-    </div>
-  </div> */}
 
-          <div className='w-full max-w-6xl space-y-4'>
-           
-            <div className='rounded-xl p-6'>
-             
-            </div>
+            {/*   <div className="w-full max-w-4xl">
+      <h2 className="text-2xl font-semibold mb-4 text-left">Recent Docs</h2>
+      <div className="flex justify-center space-x-6">
+      {loading && <div>Loading...</div>}
+        <TemplateCards documents={recentDocuments} handleDeleteTemplate={handleDeleteTemplate} />
+      </div>
+    </div> */}
           </div>
         </div>
-        
-        {/* Modal for Design Template and Generate Documents */}
-        <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <React.Suspense fallback={<div className="p-4">Loading...</div>}>
-            {(() => {
-              try {
-                if (displayPage === 'designTemplates') {
-                  return <DesignTemplate onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
-                }
-                if (displayPage === 'generateDocs') {
-                  return <GenerateDocument onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
-                }
-                return <div className="p-4 text-gray-500">No content selected.</div>;
-              } catch (err) {
-                console.error('Error rendering modal content:', err);
-                return <div className="p-4 text-red-500">An error occurred while loading the modal content.</div>;
-              }
-            })()}
-          </React.Suspense>
-        </NeoModal>
       </div>
-    </div>
+      <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <React.Suspense fallback={<div className="p-4">Loading...</div>}>
+          {(() => {
+            try {
+              if (displayPage === 'designTemplates') {
+                return (
+                  <DesignTemplate
+                    onClose={() => setIsModalOpen(false)}
+                    value={selectedProject}
+                    hasProject={false}
+                  />
+                );
+              }
+              if (displayPage === 'generateDocs') {
+                return (
+                  <GenerateDocument
+                    onClose={() => setIsModalOpen(false)}
+                    value={selectedProject}
+                    hasProject={false}
+                  />
+                );
+              }
+              return <div className="p-4 text-gray-500">No content selected.</div>;
+            } catch (err) {
+              console.error('Error rendering modal content:', err);
+              return <div className="p-4 text-red-500">An error occurred while loading the modal content.</div>;
+            }
+          })()}
+        </React.Suspense>
+      </NeoModal>
+    </>
   );
 };
 
-export default NeoTemplate;
+export default NeoTemplates;

@@ -470,7 +470,7 @@ const NeoDocements = () => {
   </div> */}
 
           <div className='w-full max-w-6xl space-y-4'>
-            <div className="flex justify-between">
+            <div className="md:flex justify-between">
             <h2 className='text-2xl font-semibold mb-4 text-left'>
               Documents 
             </h2>
@@ -493,7 +493,7 @@ const NeoDocements = () => {
                 template={true}
                 handleDeleteTemplate={handleDeleteDocument}
                 handleDownload={handleDocumentDownload}
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 "
               />
             </div>
           </div>

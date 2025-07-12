@@ -179,64 +179,81 @@ const UserManage = () => {
             <tbody>
               {users
                 .filter(u => user && (u._id !== user._id && u._id !== user.id && u.email !== user.email))
-                .map((u) => (
-                  <tr key={u._id}>
-                    <td style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {u.profilePic && u.profilePic.trim() !== "" ? (
-                        <img
-                          src={u.profilePic}
-                          alt="Profile"
-                          className="w-8 h-8 rounded-full object-cover"
-                          onError={e => { e.target.onerror = null; e.target.src = photo; }}
-                        />
-                      ) : (
-                        <FaUserCircle size={32} color="#bbb" />
-                      )}
-                      <span>{u.name || u.firstName || ""} {u.lastName || ""}</span>
-                    </td>
-                    <td>{u.email}</td>
-                    <td>
-                      {editRole[u._id] !== undefined ? (
-                        <select
-                          value={editRole[u._id]}
-                          onChange={e => handleRoleChange(u._id, e.target.value)}
-                        >
-                          {roleOptions.map(option => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        u.role === NEO_EXPERT_ROLE_ID ? 'Neo Expert' :
-                        u.role === NEO_EXECUTIVE_ROLE_ID ? 'Neo Executive' :
-                        u.role === SUPER_ADMIN_ROLE_ID ? 'Admin' :
-                        (u.role?.name || u.role || 'User')
-                      )}
-                    </td>
-                    <td style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => setViewUserId(u._id)} title="View" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#007bff' }}>
-                        <FaEye size={20} />
-                      </button>
-                      {editRole[u._id] !== undefined ? (
-                        <FaSave
-                          style={{ cursor: 'pointer', color: 'green' }}
-                          title="Save"
-                          onClick={() => handleUpdateUser(u._id)}
-                        />
-                      ) : (
-                        <FaEdit
-                          style={{ cursor: 'pointer' }}
-                          title="Edit"
-                          onClick={() => handleRoleChange(u._id, u.role)}
-                        />
-                      )}
-                      <FaTrash
-                        style={{ cursor: 'pointer', color: 'red' }}
-                        title="Delete"
-                        onClick={() => handleDeleteUser(u._id)}
-                      />
-                    </td>
-                  </tr>
-                ))}
+                .map((u) => {
+                  const isAdmin = u.role === SUPER_ADMIN_ROLE_ID;
+                  return (
+                    <tr key={u._id}>
+                      <td style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {u.profilePic && u.profilePic.trim() !== "" ? (
+                          <img
+                            src={u.profilePic}
+                            alt="Profile"
+                            className="w-8 h-8 rounded-full object-cover"
+                            onError={e => { e.target.onerror = null; e.target.src = photo; }}
+                          />
+                        ) : (
+                          <FaUserCircle size={32} color="#bbb" />
+                        )}
+                        <span>{u.name || u.firstName || ""} {u.lastName || ""}</span>
+                      </td>
+                      <td>{u.email}</td>
+                      <td>
+                        {editRole[u._id] !== undefined ? (
+                          <select
+                            value={editRole[u._id]}
+                            onChange={e => handleRoleChange(u._id, e.target.value)}
+                          >
+                            {roleOptions.map(option => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          u.role === NEO_EXPERT_ROLE_ID ? 'Neo Expert' :
+                          u.role === NEO_EXECUTIVE_ROLE_ID ? 'Neo Executive' :
+                          u.role === SUPER_ADMIN_ROLE_ID ? 'Admin' :
+                          (u.role?.name || u.role || 'User')
+                        )}
+                      </td>
+                      <td style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => setViewUserId(u._id)} title="View" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#007bff' }}>
+                          <FaEye size={20} />
+                        </button>
+                        {isAdmin ? (
+                          <FaEdit
+                            style={{ color: '#bbb', cursor: 'not-allowed' }}
+                            title="Edit (locked for Admin)"
+                            disabled
+                          />
+                        ) : editRole[u._id] !== undefined ? (
+                          <FaSave
+                            style={{ cursor: 'pointer', color: 'green' }}
+                            title="Save"
+                            onClick={() => handleUpdateUser(u._id)}
+                          />
+                        ) : (
+                          <FaEdit
+                            style={{ cursor: 'pointer' }}
+                            title="Edit"
+                            onClick={() => handleRoleChange(u._id, u.role)}
+                          />
+                        )}
+                        {isAdmin ? (
+                          <FaTrash
+                            style={{ color: '#bbb', cursor: 'not-allowed' }}
+                            title="Delete (locked for Admin)"
+                            disabled
+                          />
+                        ) : (
+                          <FaTrash
+                            style={{ cursor: 'pointer', color: 'red' }}
+                            title="Delete"
+                            onClick={() => handleDeleteUser(u._id)}
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

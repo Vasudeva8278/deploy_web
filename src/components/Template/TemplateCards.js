@@ -28,7 +28,7 @@ const Card = ({ docObj, documentId, name, thumbnail,content, handleDelete, handl
       navigate(`/document/${docId}`);
     }
   };
-
+ 
   const handleEdit = (docId) => {
     let goTo;
     if(projectId) {
@@ -126,9 +126,9 @@ const Card = ({ docObj, documentId, name, thumbnail,content, handleDelete, handl
       >
       <ToastContainer />
         <div className="flex justify-end p-2 ">
-          <div ref={menuRef} className="relative z-10 -500 w-10 rounded-full">
+          <div ref={menuRef} className="relative z-10 -500 w-10 rounded-lg bg-white">
             <button
-              className="flex items-center px-2 py-2 text-gray-600 rounded-full hover:text-gray-800 w-15 bg-gray-200"
+              className="flex items-center px-2 py-2  rounded-full hover:text-gray-800 w-15 ml-1"
               style={{ fontSize: '18px' }}
               onClick={toggleMenu}
             >
