@@ -46,7 +46,8 @@
     "yarn": "^1.22.22"
   },
   "scripts": {
-    "start": "SET PORT=4000 && npm-run-all --parallel spa",
+    "start": "PORT=4000 npm-run-all --parallel spa",
+    
     "mac-local": "PORT=4000 react-app-rewired start",
     "spa": "react-app-rewired start",
     "build": "react-app-rewired build",
