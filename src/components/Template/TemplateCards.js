@@ -28,7 +28,7 @@ const Card = ({ docObj, documentId, name, thumbnail,content, handleDelete, handl
       navigate(`/document/${docId}`);
     }
   };
- 
+
   const handleEdit = (docId) => {
     let goTo;
     if(projectId) {
@@ -117,27 +117,27 @@ const Card = ({ docObj, documentId, name, thumbnail,content, handleDelete, handl
       
       <div 
         className="bg-white border border-gray-200 rounded-2xl shadow flex flex-col justify-between w-full sm:w-64 h-[340px] p-0 relative transition hover:shadow-lg group"
-        style={{
-          backgroundImage: `url(${leafyBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
+            style={{
+              backgroundImage: `url(${leafyBg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat'
+            }}
       >
       <ToastContainer />
         <div className="flex justify-end p-2 ">
           <div ref={menuRef} className="relative z-10 -500 w-10 rounded-lg bg-white">
-            <button
+              <button
               className="flex items-center px-2 py-2  rounded-full hover:text-gray-800 w-15 ml-1"
               style={{ fontSize: '18px' }}
               onClick={toggleMenu}
-            >
+              >
               <FaEllipsisV />
-            </button>
+              </button>
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 text-sm ">
                 <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                  {!template && (
+              {!template && (
                     <button
                       className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
                       onClick={() => handleCreateDocuments(documentId)}
@@ -145,11 +145,11 @@ const Card = ({ docObj, documentId, name, thumbnail,content, handleDelete, handl
                       <FaFileAlt className="mr-1" /> Create Document
                     </button>
                   )}
-                  {template && (
-                    <button
+              {template && (
+                <button
                       className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
-                      onClick={() => handleView(documentId)}
-                    >
+                  onClick={() => handleView(documentId)}
+                >
                       <FaFileAlt className="mr-2" /> View
                     </button>
                   )}
@@ -159,16 +159,16 @@ const Card = ({ docObj, documentId, name, thumbnail,content, handleDelete, handl
                       onClick={() => handleEdit(documentId)}
                     >
                       <FaEdit className="mr-2" /> Edit
-                    </button>
-                  )}
-                  {template && (
-                    <button
+                </button>
+              )}
+              {template && (
+                <button
                       className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
                       onClick={() => handleDocumentDocument(docObj)}
-                    >
+                >
                       <FaDownload className="mr-2" /> Download
-                    </button>
-                  )}
+                </button>
+              )}
                   <button
                     className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
                     onClick={() => promptForDeletion(documentId)}
@@ -176,7 +176,7 @@ const Card = ({ docObj, documentId, name, thumbnail,content, handleDelete, handl
                     <FaTrash className="mr-2" /> Delete
                   </button>
                 </div>
-              </div>
+            </div>
             )}
           </div>
         </div>
@@ -209,22 +209,22 @@ const Card = ({ docObj, documentId, name, thumbnail,content, handleDelete, handl
          <p className="text-center mb-6">You want to delete the {!template?'template':'document'}?</p>
          
          <div className="flex justify-center space-x-4">
-           <button
+              <button
              className="inline-flex justify-center px-6 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-transparent rounded-full hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-             onClick={() => setDeleteTemplateModal(false)}
-           >
-             Cancel
-           </button>
-           <button
+                onClick={() => setDeleteTemplateModal(false)}
+              >
+                Cancel
+              </button>
+              <button
              className="inline-flex justify-center px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
              onClick={() => confirmDelete()}
-           >
+              >
              Yes
-           </button>
-         </div>
-       </div>
+              </button>
+            </div>
+          </div>
         }
-      </NeoModal>
+        </NeoModal>
         </div>
         {/* Card Bottom (Title & Folder) */}
         <div className="flex-1 flex flex-col justify-between px-4 pb-4 pt-2 bg-white rounded-b-2xl">

@@ -41,7 +41,7 @@ const Home = () => {
     const fetchRoleFeatures = async () => {
       if (roleId) {
         try {
-          const API_URL = process.env.REACT_APP_API_URL || "http://localhost:7000";
+          const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
           const res = await axios.get(`${API_URL}/api/roles/${roleId}`);
           setRoleFeatures(res.data.features || []);
         } catch (error) {
@@ -90,6 +90,7 @@ const Home = () => {
         <div className={`flex-1 p-2 overflow-auto bg-gray-50 rounded-3xl mt-16 border-2 border-gray-200 ${
           isMobile ? 'ml-1' : 'ml-2'
         }`}>
+          
           <Routes>
             {roleFeatures.includes('Users') && (
               <Route path='/user-manage' element={<UserManage />} />
