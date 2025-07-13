@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { FaFileAlt, FaEdit, FaDownload, FaTrash, FaEllipsisV } from 'react-icons/fa';
 
-import thumbnailImg from '../../assets/thumbnail.png'
+import thumbnailImg from '../../Assets/thumbnail.png'
 
 import NeoModal from '../NeoModal';
 
