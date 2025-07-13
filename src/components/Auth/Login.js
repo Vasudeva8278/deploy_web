@@ -20,7 +20,7 @@ const Login = () => {
   const { token } = useContext(AuthContext);
   const isAuthenticated = !!token;
 
-  const BASE_URL = process.env.REACT_APP_API_URL || 'http://13.200.200.137:7000';
+  const BASE_URL = process.env.REACT_APP_API_URL || 'http://13.200.107.101:7000';
   
   const mutation = useMutation(
     async (loginData) => {

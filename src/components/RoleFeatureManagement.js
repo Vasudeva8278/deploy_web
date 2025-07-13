@@ -15,7 +15,7 @@ const RoleFeatureManagement = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
+        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.107.101:7000";
         const res = await axios.get(`${API_URL}/api/roles/`);
         setRoles(res.data);
       } catch (error) {
@@ -45,7 +45,7 @@ const RoleFeatureManagement = () => {
   // Save updated features for a role
   const handleSave = async (roleId) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
+      const API_URL = process.env.REACT_APP_API_URL || "http://13.200.107.101:7000";
       await axios.put(`${API_URL}/api/roles/${roleId}`, { features: editedFeatures });
       setRoles(roles.map(r => r._id === roleId ? { ...r, features: editedFeatures } : r));
       toast.success('Role features updated!');

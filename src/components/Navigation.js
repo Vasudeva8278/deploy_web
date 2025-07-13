@@ -47,7 +47,7 @@ const Navigation = () => {
     const fetchRoleFeatures = async () => {
       if (user && user.role) {
         try {
-          const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
+          const API_URL = process.env.REACT_APP_API_URL || "http://13.200.107.101:7000";
           const res = await axios.get(`${API_URL}/api/roles/${user.role}`);
           setRoleFeatures(res.data.features || []);
         } catch (error) {

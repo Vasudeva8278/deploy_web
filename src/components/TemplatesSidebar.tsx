@@ -42,7 +42,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
 
       try {
         setLoading(true);
-        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
+        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.107.101:7000";
         
         const projectDocsPromises = projects.map(async (project: any) => {
           try {

@@ -239,7 +239,7 @@ const ProfileSettings = ({ onClose }) => {
         <h2 className='text-xl font-bold text-gray-700'>Profile Settings</h2>
         <div className='flex gap-4'>
           <button
-            className='text-sm text-red-600 font-semibold'
+            className='text-sm text-red-600 font-semibold mr-6'
             onClick={handleChangePwd}
           >
             Change Password
