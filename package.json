@@ -46,8 +46,7 @@
     "yarn": "^1.22.22"
   },
   "scripts": {
-    "start": "PORT=4000 npm-run-all --parallel spa",
-    
+    "start": "cross-env PORT=4000 npm-run-all --parallel spa",
     "mac-local": "PORT=4000 react-app-rewired start",
     "spa": "react-app-rewired start",
     "build": "react-app-rewired build",
@@ -77,6 +76,7 @@
     "@typescript-eslint/parser": "^8.35.1",
     "assert": "^2.1.0",
     "buffer": "^6.0.3",
+    "cross-env": "^7.0.3",
     "crypto-browserify": "^3.12.0",
     "https-browserify": "^1.0.0",
     "os-browserify": "^0.3.0",
