@@ -10,7 +10,7 @@ import { ProjectContext } from "../context/ProjectContext";
 //import { getAllProjects } from "../context/ProjectContext";
 import folderIcon from '../Assets/folder.png'; // Use your folder icon
 import { deleteProject } from '../services/projectApi';
-/// vasudev
+
 const Projects = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   //const [projects, setProjects] = useState([]);
