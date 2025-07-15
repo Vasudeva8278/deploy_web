@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 
 const FEATURE_LIST = ["projects", "Clients", "Templates", "Documents", "Users"];
 
@@ -10,12 +12,13 @@ const RoleFeatureManagement = () => {
   const [roleLoading, setRoleLoading] = useState(true);
   const [editRoleId, setEditRoleId] = useState(null);
   const [editedFeatures, setEditedFeatures] = useState([]);
+  const { user } = useContext(AuthContext);
 
   // Fetch roles and their features
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.107.101:7000";
+        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
         const res = await axios.get(`${API_URL}/api/roles/`);
         setRoles(res.data);
       } catch (error) {
@@ -45,7 +48,7 @@ const RoleFeatureManagement = () => {
   // Save updated features for a role
   const handleSave = async (roleId) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || "http://13.200.107.101:7000";
+      const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
       await axios.put(`${API_URL}/api/roles/${roleId}`, { features: editedFeatures });
       setRoles(roles.map(r => r._id === roleId ? { ...r, features: editedFeatures } : r));
       toast.success('Role features updated!');
@@ -55,6 +58,10 @@ const RoleFeatureManagement = () => {
       toast.error('Failed to update role features');
     }
   };
+
+  const SUPERADMIN_ROLE_ID = "6870a1c2f0884e1560f8dadf";
+  // You need to get the current user, e.g. from context or props
+  const isSuperAdmin = user && user.role === SUPERADMIN_ROLE_ID;
 
   return (
     <div className="mt-12">
@@ -66,6 +73,7 @@ const RoleFeatureManagement = () => {
         <div className="space-y-6">
           {roles.filter(role => role.name.toLowerCase() !== 'superadmin').map((role) => {
             const isAdmin = role.name.toLowerCase() === "admin";
+            const canEdit = isSuperAdmin || !isAdmin;
             return (
               <div
                 key={role._id}
@@ -79,7 +87,7 @@ const RoleFeatureManagement = () => {
                       <input
                         type="checkbox"
                         checked={editRoleId === role._id ? editedFeatures.includes(feature) : (role.features && role.features.includes(feature))}
-                        disabled={isAdmin || editRoleId !== role._id}
+                        disabled={!canEdit || editRoleId !== role._id}
                         onChange={() => handleFeatureChange(feature)}
                       />
                       <span>{feature.charAt(0).toUpperCase() + feature.slice(1)}</span>
@@ -87,26 +95,28 @@ const RoleFeatureManagement = () => {
                   ))}
                 </div>
                 <div className="flex gap-2 mt-4 md:mt-0 md:w-1/4 justify-end">
-                  {isAdmin ? (
+                  {canEdit ? (
+                    editRoleId === role._id ? (
+                      <button
+                        className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
+                        onClick={() => handleSave(role._id)}
+                      >
+                        Save
+                      </button>
+                    ) : (
+                      <button
+                        className="bg-gray-200 text-gray-800 px-4 py-1 rounded hover:bg-gray-300"
+                        onClick={() => handleEdit(role)}
+                      >
+                        Edit
+                      </button>
+                    )
+                  ) : (
                     <button
                       className="bg-gray-300 text-gray-500 px-4 py-1 rounded cursor-not-allowed"
                       disabled
                     >
                       Locked
-                    </button>
-                  ) : editRoleId === role._id ? (
-                    <button
-                      className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
-                      onClick={() => handleSave(role._id)}
-                    >
-                      Save
-                    </button>
-                  ) : (
-                    <button
-                      className="bg-gray-200 text-gray-800 px-4 py-1 rounded hover:bg-gray-300"
-                      onClick={() => handleEdit(role)}
-                    >
-                      Edit
                     </button>
                   )}
                 </div>

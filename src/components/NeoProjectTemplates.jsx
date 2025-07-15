@@ -179,15 +179,17 @@ const NeoProjectTemplates = () => {
   }; */
 
   useEffect(() => {
-    fetchTemplates();
-    fetchDocuments();
+    if (projectData && projectData._id) {
+      fetchTemplates();
+      fetchDocuments();
+    }
   }, [projectData]);
 
   const fetchDocuments = async () => {
+    if (!projectData || !projectData._id) return;
     try {
       const response = await getHomePageDocuments(projectData._id);
       const data = response;
-
       setDocTemplates(data);
     } catch (error) {
       setError("Failed to fetch documents");
@@ -197,6 +199,7 @@ const NeoProjectTemplates = () => {
     }
   };
   const fetchTemplates = async () => {
+    if (!projectData || !projectData._id) return;
     try {
       const response = await getHomePageTemplates(projectData._id);
       const data = response;
@@ -298,9 +301,7 @@ const NeoProjectTemplates = () => {
   return (
     <div className='flex'>
       <div className='flex flex-col w-full'>
-        <div className='flex text-gray-400 text-xs p-3'>
-          {projectData.projectName}
-        </div>
+       
         {/*   <div className="bg-gradient-to-r from-purple-500 to-blue-500 h-52 rounded-lg mt-4 ml-4 p-10 hidden" style={{height:'220px'}}>
       
       <div className="relative w-[500px] mx-auto " style={{width:'500px'}}>
@@ -356,19 +357,19 @@ const NeoProjectTemplates = () => {
   </div>
 </div> */}
         <div className='flex flex-col p-4 space-y-8'>
-          <div className='w-full max-w-5xl'>
+          <div className='w-full max-w-8xl'>
             <button
-              className='mb-4 bg-white text-green-600 font-medium py-2 px-4 rounded-lg shadow-md hover:bg-green-100 flex items-center'
+              className='mb-4 bg-white text-green-600 font-medium py-2 px-4 rounded-lg shadow-md hover:bg-green-100 flex items-center md:ml-11'
               onClick={handleGenerateDocs}
               disabled={documents?.length === 0}
             >
               <FaMagic className='adj' /> Generate Client Documents
             </button>
 
-            <h2 className='text-2xl font-semibold mb-4 text-left'>
-              Saved Templates for {projectData.projectName}
+            <h2 className='text-2xl font-semibold mb-4 text-left md:ml-11'>
+             Templates for {projectData && projectData.projectName ? projectData.projectName : 'Unnamed Project'}
             </h2>
-            <div className='flex justify-center'>
+            <div className='flex justify-center md:ml-5'>
               {loading && <div>Loading...</div>}
               <TemplateCards
                 documents={documents}
@@ -386,11 +387,11 @@ const NeoProjectTemplates = () => {
     </div>
   </div> */}
 
-          <div className='w-full max-w-5xl gap-x-4 space-y-4 ml-4'>
-            <h2 className='text-2xl font-semibold mb-4 text-left'>
+          <div className='w-full max-w-8xl gap-x-4 space-y-4 ml-4'>
+            <h2 className='text-2xl font-semibold mb-4 text-left md:ml-6'>
               Documents with Template Names 
          </h2>
-            <div className='flex justify-center gap-x-8 gap-y-8'>
+            <div className='flex justify-center gap-x-6 gap-y-6 '>
               {loading && <div>Loading...</div>}
               {/* {error && <div>{error}</div>} */}
               <TemplateCards

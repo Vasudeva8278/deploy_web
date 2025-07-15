@@ -1,13 +1,16 @@
-
 import React, { useState, useEffect, useContext } from 'react';
 import { FileText, Trash2, Plus, Folder, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ProjectContext } from '../context/ProjectContext';
+import { AuthContext } from '../context/AuthContext';
 
 interface TemplatesSidebarProps {
   // Remove isVisible prop since it's now permanent
 }
+
+const NEO_EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
+const NEO_EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
 
 interface DocumentData {
   _id: string;
@@ -31,10 +34,32 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { projects } = useContext(ProjectContext);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Function to get role display name
+  const getRoleDisplayName = (roleId: string) => {
+    switch (roleId) {
+      case NEO_EXPERT_ROLE_ID:
+        return "NEO Expert";
+      case NEO_EXECUTIVE_ROLE_ID:
+        return "NEO Executive";
+      default:
+        return "User";
+    }
+  };
+
+  // Check if user has restricted access
+  const isRestrictedUser = user?.role === NEO_EXPERT_ROLE_ID || user?.role === NEO_EXECUTIVE_ROLE_ID;
 
   useEffect(() => {
     const fetchAllProjectDocuments = async () => {
+      // If user is restricted, don't fetch projects
+      if (isRestrictedUser) {
+        setLoading(false);
+        return;
+      }
+
       if (!projects || projects.length === 0) {
         setLoading(false);
         return;
@@ -42,7 +67,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
 
       try {
         setLoading(true);
-        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.107.101:7000";
+        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
         
         const projectDocsPromises = projects.map(async (project: any) => {
           try {
@@ -93,11 +118,11 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
       }
     };
 
-    // Always fetch documents when projects are available - no isVisible check
-    if (projects) {
+    // Only fetch documents for non-restricted users
+    if (projects && !isRestrictedUser) {
       fetchAllProjectDocuments();
     }
-  }, [projects]); // Removed isVisible dependency
+  }, [projects, isRestrictedUser]);
 
   const toggleProject = (projectId: string, event: React.MouseEvent) => {
     // Stop propagation to prevent project navigation when clicking the expand arrow
@@ -136,6 +161,68 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
   // Calculate total documents across all projects
   const totalDocuments = projectDocuments.reduce((sum, project) => sum + project.documents.length, 0);
 
+  // If user is restricted, show only role and authorization message
+  if (isRestrictedUser) {
+    return (
+      <div className="fixed top-0 left-20 z-20 h-screen bg-white border-r border-gray-200 w-40 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="p-2 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center mb-2">
+            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-1">
+              <span className="text-white font-bold text-xs">N</span>
+            </div>
+            <h1 className="text-xs font-bold text-gray-800">NEO</h1>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="p-2 space-y-1 border-b border-gray-200 flex-shrink-0">
+          <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-1.5 px-2 rounded text-xs transition-colors duration-200 flex items-center justify-center font-medium">
+            Upgrade
+          </button>
+        </div>
+
+        {/* Role and Authorization Message */}
+        <div className="flex-1 overflow-y-auto p-2 flex flex-col">
+          <div className="text-center py-4">
+            <div className="mb-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                <span className="text-gray-600 font-bold text-sm">
+                  {user?.role === NEO_EXPERT_ROLE_ID ? "E" : "X"}
+                </span>
+              </div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">
+                {getRoleDisplayName(user?.role || "")}
+              </h3>
+            </div>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-yellow-800 leading-relaxed">
+                You are not authorized to view projects. Please contact your administrator for access.
+              </p>
+            </div>
+            
+            <div className="text-xs text-gray-500">
+              Role: {getRoleDisplayName(user?.role || "")}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-gray-200 p-2 flex-shrink-0">
+          <div className="flex items-center px-1 py-1.5 hover:bg-gray-100 rounded cursor-pointer transition-colors duration-200">
+            <Trash2 className="w-3 h-3 mr-1 text-gray-600 flex-shrink-0" />
+            <span className="text-xs text-gray-700 flex-1">Trash</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Original logic for non-restricted users
+  let filteredProjects = allProjects;
+  if (filteredProjects.length === 0) return null;
+
   return (
     <div className="fixed top-0 left-20 z-20 h-screen bg-white border-r border-gray-200 w-40 flex flex-col overflow-hidden">
         {/* Header */}
@@ -160,7 +247,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
       {/* Projects and Documents - Main content area that can grow */}
       <div className="flex-1 overflow-y-auto p-2 flex flex-col">
         <h3 className="text-xs font-semibold text-gray-800 mb-2 flex-shrink-0">
-          All Projects ({allProjects.length}) • {totalDocuments} docs
+          All Projects ({filteredProjects.length}) • {filteredProjects.reduce((sum, project) => sum + project.documents.length, 0)} docs
         </h3>
         <div className="flex flex-col space-y-1 flex-1">
           {loading ? (
@@ -169,10 +256,10 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
             </div>
           ) : error ? (
             <div className="text-xs text-red-500 text-center py-2">{error}</div>
-          ) : allProjects.length === 0 ? (
+          ) : filteredProjects.length === 0 ? (
             <div className="text-xs text-gray-500 text-center py-2">No projects found</div>
           ) : (
-            allProjects.map((project) => (
+            filteredProjects.map((project) => (
               <div key={project.projectId} className="flex-shrink-0">
                 {/* Project Header */}
                 <div

@@ -19,16 +19,23 @@ const api = axios.create({
 
 const NEO_EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
 const NEO_EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
-const SUPER_ADMIN_ROLE_ID = "68621581db15fbb9bbd2f839";
+const SUPER_ADMIN_ROLE_ID = "685f9b7d3d988647b344e5ca";
+const NEO_ORGANIZATION_ID = "6870a1c2f0884e1560f8dadf";
+
 const roleOptions = [
   { value: NEO_EXPERT_ROLE_ID, label: 'Neo Expert' },
   { value: NEO_EXECUTIVE_ROLE_ID, label: 'Neo Executive' },
-  { value: SUPER_ADMIN_ROLE_ID, label: 'Admin' }
+  { value: SUPER_ADMIN_ROLE_ID, label: 'Admin' },
+  { value: NEO_ORGANIZATION_ID, label: 'Neo Organization' } 
 ];
 
 const FEATURE_LIST = ["Projects", "Clients", "Templates", "Documents", "Users"];
 
 const UserManage = () => {
+  const [search, setSearch] = useState('');
+const [roleFilter, setRoleFilter] = useState('All');
+const [page, setPage] = useState(1);
+const [pageSize, setPageSize] = useState(5);
   const { user } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +129,19 @@ const UserManage = () => {
 
   
 
+  // Filtering logic
+  const filteredUsers = users.filter(u => {
+    const matchesSearch =
+      (u.name?.toLowerCase().includes(search.toLowerCase()) ||
+       u.email?.toLowerCase().includes(search.toLowerCase()));
+    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / pageSize) || 1;
+  const paginatedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <>
     <ToastContainer />
@@ -133,8 +153,7 @@ const UserManage = () => {
     <div>
       
       
-     
-      <h1 className='text-2xl font-bold'>User Management</h1>
+
       {loading && (
         <div className="overflow-x-auto mt-4 border-2 border-gray-300 rounded-xl p-4">
           <table className="equipment-table">
@@ -164,99 +183,131 @@ const UserManage = () => {
         </div>
       )}
     
-        <div className="overflow-x-auto">
-          <table className="equipment-table">
-            <thead>
-              <tr>
-               
-             
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Actions</th>
+        <div className="w-full p-5 mt-8">
+  <div className="flex flex-wrap gap-4 mb-4 items-center">
+    <div>
+      <span className="font-semibold text-lg">User Management</span>
+    </div>
+    <input
+      className="border rounded-lg px-3 py-2"
+      placeholder={`Search: ${users.length} records...`}
+      value={search}
+      onChange={e => { setSearch(e.target.value); setPage(1); }}
+    />
+   
+      
+  </div>
+  <div className="bg-white rounded-xl shadow overflow-x-auto">
+    <table className="min-w-full">
+      <thead>
+        <tr className="border-b">
+          <th className="py-3 px-4 text-left">Name</th>
+          <th className="py-3 px-4 text-left">Email</th>
+          <th className="py-3 px-4 text-left">Role</th>
+         
+          <th className="py-3 px-4 text-left">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {paginatedUsers
+          .filter(u =>
+            u._id !== user?._id &&
+            u._id !== user?.id &&
+            u.email !== user?.email &&
+            u.role !== NEO_ORGANIZATION_ID
+          )
+          .map(u => {
+            const isCurrentUser = u._id === user?._id || u._id === user?.id || u.email === user?.email;
+            const isAdmin = u.role === SUPER_ADMIN_ROLE_ID;
+            const isOrgUser = user.role === NEO_ORGANIZATION_ID;
+            const canEditDeleteAdmin = isAdmin && isOrgUser;
+            const canEditDelete = !isCurrentUser && (!isAdmin || canEditDeleteAdmin);
+            return (
+              <tr key={u._id} className="border-b hover:bg-gray-50">
+                <td className="py-3 px-4 flex items-center gap-3">
+                  <img src={u.profilePic || photo} className="w-10 h-10 rounded-full object-cover" alt="" />
+                  <div>
+                    <div className="font-semibold">{u.name}</div>
+                    <div className="text-xs text-gray-500">{u.email}</div>
+                  </div>
+                </td>
+                <td className="py-3 px-4">{u.email}</td>
+                <td className="py-3 px-4">
+                  {editRole[u._id] !== undefined ? (
+                    <select
+                      value={editRole[u._id]}
+                      onChange={e => handleRoleChange(u._id, e.target.value)}
+                      className="border rounded px-2 py-1"
+                      disabled={isCurrentUser || (isAdmin && !isOrgUser)}
+                    >
+                    {roleOptions
+                      .filter(option => option.label !== 'Neo Organization')
+                      .map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    roleOptions.find(option => option.value === u.role)?.label || u.role || 'User'
+                  )}
+                </td>
+                <td className="py-3 px-4 flex gap-2">
+                  <button onClick={() => setViewUserId(u._id)} title="View" className="text-blue-600 hover:text-blue-800">
+                    <FaEye size={18} />
+                  </button>
+                  {(!canEditDelete || editRole[u._id] !== undefined && isCurrentUser) ? (
+                    <FaEdit
+                      className="text-gray-400 cursor-not-allowed"
+                      title={isCurrentUser ? "Edit (locked for yourself)" : "Edit (locked)"}
+                      disabled
+                    />
+                  ) : editRole[u._id] !== undefined ? (
+                    <FaSave
+                      className="text-green-600 cursor-pointer"
+                      title="Save"
+                      onClick={() => handleUpdateUser(u._id)}
+                    />
+                  ) : (
+                    <FaEdit
+                      className="text-gray-600 cursor-pointer"
+                      title="Edit"
+                      onClick={() => handleRoleChange(u._id, u.role)}
+                    />
+                  )}
+                  {(!canEditDelete) ? (
+                    <FaTrash
+                      className="text-gray-400 cursor-not-allowed"
+                      title={isCurrentUser ? "Delete (locked for yourself)" : "Delete (locked)"}
+                      disabled
+                    />
+                  ) : (
+                    <FaTrash
+                      className="text-red-600 cursor-pointer"
+                      title="Delete"
+                      onClick={() => handleDeleteUser(u._id)}
+                    />
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {users
-                .filter(u => user && (u._id !== user._id && u._id !== user.id && u.email !== user.email))
-                .map((u) => {
-                  const isAdmin = u.role === SUPER_ADMIN_ROLE_ID;
-                  return (
-                    <tr key={u._id}>
-                      <td style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {u.profilePic && u.profilePic.trim() !== "" ? (
-                          <img
-                            src={u.profilePic}
-                            alt="Profile"
-                            className="w-8 h-8 rounded-full object-cover"
-                            onError={e => { e.target.onerror = null; e.target.src = photo; }}
-                          />
-                        ) : (
-                          <FaUserCircle size={32} color="#bbb" />
-                        )}
-                        <span>{u.name || u.firstName || ""} {u.lastName || ""}</span>
-                      </td>
-                      <td>{u.email}</td>
-                      <td>
-                        {editRole[u._id] !== undefined ? (
-                          <select
-                            value={editRole[u._id]}
-                            onChange={e => handleRoleChange(u._id, e.target.value)}
-                          >
-                            {roleOptions.map(option => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          u.role === NEO_EXPERT_ROLE_ID ? 'Neo Expert' :
-                          u.role === NEO_EXECUTIVE_ROLE_ID ? 'Neo Executive' :
-                          u.role === SUPER_ADMIN_ROLE_ID ? 'Admin' :
-                          (u.role?.name || u.role || 'User')
-                        )}
-                      </td>
-                      <td style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={() => setViewUserId(u._id)} title="View" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#007bff' }}>
-                          <FaEye size={20} />
-                        </button>
-                        {isAdmin ? (
-                          <FaEdit
-                            style={{ color: '#bbb', cursor: 'not-allowed' }}
-                            title="Edit (locked for Admin)"
-                            disabled
-                          />
-                        ) : editRole[u._id] !== undefined ? (
-                          <FaSave
-                            style={{ cursor: 'pointer', color: 'green' }}
-                            title="Save"
-                            onClick={() => handleUpdateUser(u._id)}
-                          />
-                        ) : (
-                          <FaEdit
-                            style={{ cursor: 'pointer' }}
-                            title="Edit"
-                            onClick={() => handleRoleChange(u._id, u.role)}
-                          />
-                        )}
-                        {isAdmin ? (
-                          <FaTrash
-                            style={{ color: '#bbb', cursor: 'not-allowed' }}
-                            title="Delete (locked for Admin)"
-                            disabled
-                          />
-                        ) : (
-                          <FaTrash
-                            style={{ cursor: 'pointer', color: 'red' }}
-                            title="Delete"
-                            onClick={() => handleDeleteUser(u._id)}
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
+            );
+          })}
+      </tbody>
+    </table>
+  </div>
+  {/* Pagination controls */}
+  <div className="flex justify-between items-center mt-4">
+    <div>
+      Page {page} of {totalPages}
+    </div>
+    <div className="flex items-center gap-2">
+      <span>Show</span>
+      <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="border rounded px-2 py-1">
+        {[5, 10, 20].map(size => <option key={size} value={size}>{size}</option>)}
+      </select>
+      <button onClick={() => setPage(p => Math.max(1, p - 1))}>&lt;</button>
+      <button onClick={() => setPage(p => Math.min(totalPages, p + 1))}>&gt;</button>
+    </div>
+  </div>
+</div>
        
    
     </div>

@@ -1,20 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaFileAlt, FaEdit, FaDownload, FaTrash, FaEllipsisV } from 'react-icons/fa';
-import thumbnail from '../../Assets/thumbnail.png'
-import table from '../../Assets/table.png';
-import image from '../../Assets/image.png';
-import imgIcon from '../../Assets/imgIcon.jpg';
-import tableIcon from '../../Assets/tableIcon.png';
-import thumbnailImg from '../../Assets/thumbnail.png';
+import thumbnailImg from '../../Assets/thumbnail.png'
 
-const Card = ({ project,thumbnail,onEdit }) => {
+const Card = ({ project, thumbnail, onEdit }) => {
   const navigate = useNavigate();
- 
-   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-
- 
 
   const handleEditProject = () => {
     onEdit(project);
@@ -26,7 +18,6 @@ const Card = ({ project,thumbnail,onEdit }) => {
 
   const viewTemplates = (project) => {
     navigate(`/projects/${project._id}`, { state: { data: project } });
-    //navigate(`/export/${docId}?projectId=${projectId}`);
   };
 
   const toggleMenu = () => {
@@ -45,90 +36,120 @@ const Card = ({ project,thumbnail,onEdit }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-  
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow flex flex-col justify-between w-full sm:w-64 h-[340px] p-0 relative transition hover:shadow-lg">
-      {/* Card Top (Menu) */}
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col w-full relative overflow-hidden">
+      {/* Menu Button */}
       <div className="flex justify-end p-2">
-        <div ref={menuRef} className="relative z-10">
+        <div ref={menuRef} className="relative z-15">
           <button
-            className="flex items-center px-2 py-2 text-gray-600 rounded-full hover:bg-gray-200 hover:text-gray-800"
-            style={{ fontSize: '18px' }}
+            className="flex items-center justify-center w-6 h-8 text-gray-500 rounded-full bg-gray-100 hover:text-gray-700 transition-colors duration-200"
             onClick={toggleMenu}
+            aria-label="More options"
           >
-            <FaEllipsisV />
+            <FaEllipsisV className="text-sm" />
           </button>
+          
+          {/* Dropdown Menu */}
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 text-sm">
-              <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                {project && (
-                  <button
-                    className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    onClick={() => handleEditProject(project._id)}
-                  >
-                    <FaFileAlt className="mr-2" /> Edit Project
-                  </button>
-                )}
-                {project && (
-                  <button
-                    className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    onClick={() => viewTemplates(project)}
-                  >
-                    <FaFileAlt className="mr-2" /> View Templates
-                  </button>
-                )}
+            <div className="absolute right-0 mt-1  ml-4 w-39 bg-white rounded-md shadow-lg border border-gray-200 z-30 overflow-hidden">
+              <div className="py-3" role="menu" aria-orientation="vertical" >
+                <button
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-150"
+                  onClick={() => {
+                    handleEditProject(project._id);
+                    setMenuOpen(false);
+                  }}
+                >
+                  <FaEdit className="mr-3 text-gray-400" />
+                  Edit
+                </button>
+                <button
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-150"
+                  onClick={() => {
+                    viewTemplates(project);
+                    setMenuOpen(false);
+                  }}
+                >
+                  <FaFileAlt className="mr-3 text-gray-400" />
+                  View
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
-      {/* Card Image/Preview */}
-      <div className="flex-1 flex items-center justify-center px-4">
+
+      {/* Thumbnail Section */}
+      <div className="flex-1 px-4 pb-2">
         <div
+          className="w-full bg-gray-50 border border-gray-200 rounded-lg overflow-hidden"
           style={{
-            height: '150px',
-            width: '100%',
-            backgroundColor: '#f5f6fa',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            height: '120px',
+            minHeight: '120px',
           }}
         >
-          {thumbnail && (thumbnail !== null || thumbnail !== undefined) ? (
-            <img src={`data:image/png;base64,${thumbnail}`} className="object-contain h-full w-full" />
-          ) : (
-            <img src={thumbnailImg} className="object-contain h-full w-full" />
-          )}
+          <div className="w-full h-full flex items-center justify-center">
+            {thumbnail && (thumbnail !== null && thumbnail !== undefined) ? (
+              <img
+                src={`data:image/png;base64,${thumbnail}`}
+                alt={`${project.projectName} thumbnail`}
+                className="w-full h-full object-cover"
+                style={{ transform: 'scale(0.9)' }}
+              />
+            ) : (
+              <img
+                src={thumbnailImg}
+                alt="Default thumbnail"
+                className="w-full h-full object-cover opacity-60"
+                style={{ transform: 'scale(0.9)' }}
+              />
+            )}
+          </div>
         </div>
       </div>
-      {/* Card Bottom (Title & Folder) */}
-      <div className="px-4 pb-4 pt-2">
-        <div className="text-base font-semibold truncate text-gray-800 mb-1">{project.projectName}</div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="#6366F1" d="M3 6a2 2 0 0 1 2-2h4.465a2 2 0 0 1 1.414.586l1.535 1.535A2 2 0 0 0 13.828 7H19a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6Z"/></svg>
-         
-        </div>
+
+      {/* Project Name */}
+      <div className="px-4 pb-4">
+        <h3 className="text-sm font-semibold text-gray-900 text-center truncate">
+          {project.projectName}
+        </h3>
       </div>
     </div>
   );
 };
 
-const ProjectCards = ({ projects, onEdit}) => {
+const ProjectCards = ({ projects, onEdit }) => {
+  // Handle empty state
+  if (!projects || projects.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 px-4 sm:mr-10">
+        <FaFileAlt className="text-gray-300 text-6xl mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
+        <p className="text-gray-500 text-center max-w-md">
+          Create your first project to get started with templates and documents.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div id="cardContainer" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {projects?.map((project) => (
-        <Card
-          project={project}
-          key={project._id}
-          projectId={project._id}
-          name={project.fileName}
-          thumbnail={project.thumbnail}
-          onEdit={onEdit}
-        />
-      ))}
+    <div className="w-full">
+      <div 
+        id="cardContainer" 
+        className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6 lg:gap-8 p-4 sm:p-6 lg:p-8"
+      >
+        {projects.map((project) => (
+          <Card
+            project={project}
+            key={project._id}
+            projectId={project._id}
+            name={project.fileName}
+            thumbnail={project.thumbnail}
+            onEdit={onEdit}
+          />
+        ))}
+      </div>
     </div>
   );
 };

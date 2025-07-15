@@ -313,8 +313,7 @@ const Neo = () => {
       </div>
 
       <div className='flex flex-col w-full m-2'>
-        <div className='flex text-gray-400 text-xs p-3'>All Templates </div>
-        
+       
         <div
           className='bg-gradient-to-r from-purple-500 to-blue-500 h-52 rounded-lg mt-4 ml-4 p-10 hidden'
           style={{ height: "220px" }}
@@ -376,8 +375,8 @@ const Neo = () => {
           </div>
         </div>
         <div className='flex flex-col p-4 space-y-8'>
-          <div className='w-full max-w-5xl'>
-            <h2 className='text-2xl font-semibold mb-4 text-left'>
+          <div className='w-full max-w-8xl'>
+            <h2 className='text-2xl font-semibold mb-4 text-left ml-6'>
                Templates
             </h2>
             <div className='flex justify-center'>
@@ -397,11 +396,11 @@ const Neo = () => {
     </div>
   </div> */}
 
-          <div className='w-full max-w-6xl space-y-4'>
-            <h2 className='text-2xl font-semibold mb-4 text-left'>
+          <div className='w-full max-w-8xl space-y-4'>
+            <h2 className='text-2xl font-semibold mb-4 text-left ml-6 sm:ml-3'>
               Documents 
             </h2>
-            <div className='rounded-xl p-6'>
+            <div className='mr-4'>
               <TemplateCards
                 documents={docTemplates}
                 template={true}

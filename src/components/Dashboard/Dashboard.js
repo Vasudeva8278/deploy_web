@@ -34,11 +34,12 @@ const Dashboard = () => {
     <div>
       <SearchHeader />
       <Neo />
-      <h1 className='text-2xl font-bold mx-8'>Projects</h1>
+      <div className='py-4  ml-6'>
+      <h1 className='text-2xl font-bold mb-4 ml-6'>Projects</h1>
       {loading && <div>Loading...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
-      <div className="my-8 mx-8">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="max-w-6xl ml-6">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {projects.map((docObj) => (
             <div key={docObj._id} className="bg-white border border-gray-200 rounded-2xl shadow flex flex-col justify-between w-full h-[260px] p-4 relative transition hover:shadow-lg">
               {docObj.thumbnail && (
@@ -56,14 +57,18 @@ const Dashboard = () => {
                   onError={e => { e.target.onerror = null; e.target.src = '/placeholder.png'; }}
                 />
               )}
+              
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <div className="text-xs font-semibold truncate text-gray-800 mb-1">{docObj.fileName}</div>
                   <div className="text-xs text-gray-500 mb-2">Type: {docObj.type}</div>
                 </div>
+                
               </div>
+            
             </div>
           ))}
+        </div>
         </div>
       </div>
     </div>

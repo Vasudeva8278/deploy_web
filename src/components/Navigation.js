@@ -38,16 +38,18 @@ const Navigation = () => {
   const EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
   const EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
   const ADMIN_ROLE_ID = "68621571db15fbb9bbd2f834";
+  const SUPERADMIN_ROLE_ID = "6870a1c2f0884e1560f8dadf";
   const isExecutive = user && user.role === EXECUTIVE_ROLE_ID;
   const isExpert = user && user.role === EXPERT_ROLE_ID;
   const isAdmin = user && user.role === ADMIN_ROLE_ID;
+  const isSuperAdmin = user && user.role === SUPERADMIN_ROLE_ID;
 
   // Fetch role features for the logged-in user
   useEffect(() => {
     const fetchRoleFeatures = async () => {
       if (user && user.role) {
         try {
-          const API_URL = process.env.REACT_APP_API_URL || "http://13.200.107.101:7000";
+          const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
           const res = await axios.get(`${API_URL}/api/roles/${user.role}`);
           setRoleFeatures(res.data.features || []);
         } catch (error) {
@@ -230,13 +232,27 @@ const Navigation = () => {
       {/* Main Navigation Items */}
       <nav className={`flex flex-col items-center flex-1 ${isMobile ? 'py-2 space-y-2' : 'py-4 space-y-4'}`}>
         <ul className={`w-full flex flex-col items-center ${isMobile ? 'space-y-1' : 'space-y-2'}`}>
-          {isAdmin ? (
+          {isSuperAdmin ? (
+            <>
+              <NavItem to="/dashboard" icon={GoHome} label="Home" />
+              <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" />
+              <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" />
+              <NavItem to="/Neo" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" />
+              <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" />
+              <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" />
+              <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" />
+              <NavItem to="/profile" icon={FaUser} label="Profile" />
+              {/* Add any other routes/actions you want SuperAdmin to see */}
+            </>
+          ) : isAdmin ? (
             <>
               <NavItem to="/dashboard" icon={GoHome} label="Home" featureKey={null} />
               <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" featureKey="projects" />
               <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" featureKey="Clients" />
               <NavItem to="/Neo" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
               <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
+              <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" featureKey="Users" />
+              <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" featureKey={null} />
             </>
           ) : isExecutive ? (
             <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />

@@ -20,6 +20,12 @@ const SearchHeader = ({ projectId, hasProject = false }) => {
     setIsModalOpen(true);
   };
 
+  const handleTemplateCreated = () => {
+    // e.g., refresh templates, show a toast, etc.
+    setIsModalOpen(false);
+    // Optionally trigger a parent refresh if needed
+  };
+
   useEffect(() => {
     if (projectId) {
       setSelectedProject(projectId);
@@ -65,7 +71,14 @@ const SearchHeader = ({ projectId, hasProject = false }) => {
           {(() => {
             try {
               if (displayPage === 'designTemplates') {
-                return <DesignTemplate onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={hasProject} />;
+                return (
+                  <DesignTemplate
+                    onClose={() => setIsModalOpen(false)}
+                    value={selectedProject}
+                    hasProject={hasProject}
+                    onTemplateCreated={handleTemplateCreated}
+                  />
+                );
               }
               if (displayPage === 'generateDocs') {
                 return <GenerateDocument onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={hasProject} />;

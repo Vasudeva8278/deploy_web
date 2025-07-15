@@ -73,7 +73,7 @@ const UserCard = ({ userid, onClose }) => {
                 </div>
                 </>
             ) : (
-                <div>Loading...</div>
+                <div>User Not Update Details</div>
             )}
         </div>
     )

@@ -20,7 +20,7 @@ const Login = () => {
   const { token } = useContext(AuthContext);
   const isAuthenticated = !!token;
 
-  const BASE_URL = process.env.REACT_APP_API_URL || 'http://13.200.107.101:7000';
+  const BASE_URL = process.env.REACT_APP_API_URL || 'http://13.200.200.137:7000';
   
   const mutation = useMutation(
     async (loginData) => {
@@ -36,8 +36,16 @@ const Login = () => {
         setToken(data.token);
         localStorage.setItem("token", data.token);
         localStorage.setItem("orgId", data.user.orgId);
-        console.log("user.role:", data.user.role);
-        navigate("/projects");
+        // Role-based navigation
+        const EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
+        const NEO_EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
+        if (data.user.role === EXECUTIVE_ROLE_ID) {
+          navigate("/NeoDocements");
+        } else if (data.user.role === NEO_EXPERT_ROLE_ID) {
+          navigate("/Neo");
+        } else {
+          navigate("/dashboard");
+        }
       },
       onError: (error) => {
         setLoading(false);
@@ -67,11 +75,11 @@ const Login = () => {
         .then(res => {
           setUser(res.data);
           localStorage.setItem("orgId", res.data.orgId);
-          navigate("/projects");
+          navigate("/dashboard");
         })
         .catch(() => {
           // fallback: just navigate
-          navigate("/projects");
+          navigate("/dashboard");
         });
     }
   }, [location, navigate, setToken, setUser]);

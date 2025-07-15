@@ -94,7 +94,7 @@ const DocumentHighlightsModal = ({ isOpen, onClose, onSave, highlight,  tempDocu
   
   // Ensure the newText state updates when initialText changes
   useEffect(() => {
-    setHighlightType(highlight.type);
+    setHighlightType(highlight?.type || 'text');
     setNewImage(null);
     setIsCropping(false); 
     setCroppedImage(null);
@@ -280,15 +280,15 @@ const handleResizeMouseUp = async () => {
     onClose();
   }
 
-  if (!isOpen) return null;
+  if (!isOpen || !highlight) return null;
   return (
     <div className="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50 overflow-auto">
     <div className="bg-white rounded-lg shadow-lg w-auto max-w-[90%] min-w-[700px] max-h-[80%] overflow-auto">
       <div className="bg-gray-300 p-2 rounded-t-lg">
-        <h2 className="text-lg font-medium text-gray-800">{highlight.label}</h2>
+        <h2 className="text-lg font-medium text-gray-800">{highlight?.label}</h2>
       </div>
       <div className="p-4">
-        {highlight.type === 'image' && (
+        {highlight?.type === 'image' && (
           <>
            {!newImage && <div className="mt-4">
               <label htmlFor="originalText" className="block text-sm font-medium text-gray-700">
@@ -296,7 +296,7 @@ const handleResizeMouseUp = async () => {
               </label>
               <div
                 id="originalText"
-                dangerouslySetInnerHTML={{ __html: highlight.text }}
+                dangerouslySetInnerHTML={{ __html: highlight?.text }}
                 className="mt-2 w-64 h-64 object-cover"
               />
             </div>}
@@ -418,20 +418,20 @@ const handleResizeMouseUp = async () => {
           </div>
           </>
         )}
-        {highlight.type === 'table' && (
+        {highlight?.type === 'table' && (
           <>
            
             <div className="mt-4 hidden">
               <label htmlFor="originalText" className="block text-sm font-medium text-gray-700">
                 Original Table:
               </label>
-              <div id="originalText" dangerouslySetInnerHTML={{ __html: highlight.text }} />
+              <div id="originalText" dangerouslySetInnerHTML={{ __html: highlight?.text }} />
            
              <div id="newTable" ref={tableDivRef} dangerouslySetInnerHTML={{ __html: newText }} />
             </div>
              <div className="block text-sm font-medium text-gray-700 mt-2">
              <div className="flex space-x-2">
-              <DynamicTable  initialTableHtml={highlight.text} setNewText={setNewText} handleSaveTable={handleSaveTable}/>
+              <DynamicTable  initialTableHtml={highlight?.text} setNewText={setNewText} handleSaveTable={handleSaveTable}/>
               </div>
               <div className="flex justify-between">
             

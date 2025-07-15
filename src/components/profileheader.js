@@ -5,31 +5,19 @@ import photo from "../Assets/general_profile.png";
 import { AuthContext } from "../context/AuthContext";
 import Swal from "sweetalert2";
 
-const ProfileHeader = () => {
+const ProfileHeader = ({ onSearch }) => {
   const navigate = useNavigate();
   const { user, logout } = useContext(AuthContext);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const dropdownRef = useRef(null);
 
-  // Only one getRoleName function
   const getRoleName = (roleId) => {
-    const id = String(roleId).trim();
-    console.log("RoleId value:", id, "Type:", typeof id);
-    if (id === "685f9b7d3d988647b344e5ca") return "Admin";
-    if (id === "68621581db15fbb9bbd2f836") return "Neo Expert";
-    if (id === "68621597db15fbb9bbd2f838") return "Neo Executive";
-    return ""; // fallback
+    if (roleId === "68621571db15fbb9bbd2f834") return "Admin";
+    if (roleId === "68621581db15fbb9bbd2f836") return "Neo Expert";
+    if (roleId === "68621597db15fbb9bbd2f838") return "Neo Executive";
+    return "User";
   };
-
-  // Log the role name to the console
-  useEffect(() => {
-    if (user && user.role) {
-      console.log("Role value:", user.role, "Type:", typeof user.role);
-      console.log("Admin check:", user.role === "685f9b7d3d988647b344e5ca");
-      console.log("Role Name:", getRoleName(user.role));
-    }
-  }, [user]);
 
   const handleLogout = () => {
     Swal.fire({
@@ -91,8 +79,6 @@ const ProfileHeader = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  console.log("User object:", user);
-
   return (
     <div className={`flex justify-between items-center fixed top-0 left-20 right-0 z-30 bg-white h-[60px] px-6 ${
       isMobile ? 'ml-1' : 'ml-44'
@@ -101,8 +87,9 @@ const ProfileHeader = () => {
       <div className="relative max-w-lg flex-1 mt-2">
         <input
           type="text"
-          placeholder="Search for template/documents"
+          placeholder="Search by name or character"
           className="w-full pl-12 pr-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-transparent text-gray-700 bg-[#f5f6fa] border-2 border-gray-200"
+          onChange={e => onSearch && onSearch(e.target.value)}
         />
       </div>
 
@@ -110,8 +97,7 @@ const ProfileHeader = () => {
       <div className="relative flex items-center gap-2 sm:gap-3 cursor-pointer" ref={dropdownRef}>
         {/* Show name only on desktop */}
         <div className="hidden sm:block text-sm font-semibold text-gray-800">
-          {user?.name}
-        
+          {user?.name || "User"}
         </div>
 
         {/* Profile Icon and Chevron */}
@@ -131,13 +117,13 @@ const ProfileHeader = () => {
         {dropdownOpen && (
           <div className="absolute right-0 top-12 bg-white shadow-lg rounded-lg z-50 px-4 py-3 w-52 sm:w-64">
             <div className="flex flex-col items-start space-y-1 mb-2">
-              <span className="font-semibold text-gray-800 text-sm">{user?.name}</span>
-              <span className="text-xs text-gray-500">{getRoleName(user?.role)}</span>
+              <span className="font-semibold text-gray-800 text-sm">{user?.name || "User"}</span>
+              <span className="text-xs text-gray-500">{getRoleName(user?.roleId)}</span>
             </div>
             <hr className="my-2" />
             <button
               className="w-full text-left text-sm text-gray-700 hover:bg-gray-100 px-2 py-1 rounded"
-              onClick={() => window.location.href = "http://localhost:4000/#/profile"}
+              onClick={() => navigate("/profile")}
             >
               Profile
             </button>

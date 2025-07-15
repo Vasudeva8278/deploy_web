@@ -299,41 +299,33 @@ const NeoDocements = () => {
 
   if (isExecutive || isExpert) {
     return (
-      <div className='flex flex-col w-full p-8'>
-        {/* Add Design Template and Generate Documents buttons for Executive/Expert users */}
-        <div className="flex flex-col sm:flex-row items-center gap-2 justify-end mb-4">
-          {!isExecutive && (
-            <button
-              onClick={() => openModal('designTemplates')}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
-            >
-              <FileText className="w-5 h-5" />
-              Design Template
-            </button>
-          )}
-          <button
-            onClick={() => openModal('generateDocs')}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
-          >
-            <Sparkles className="w-5 h-5" />
-            Generate Documents
-          </button>
-        </div>
-      
-        <div className='w-full max-w-6xl space-y-4 mx-auto'>
-          <h2 className='text-2xl font-semibold mb-4 text-left'>Documents</h2>
-          <div className='rounded-xl p-6'>
-            <TemplateCards
-              documents={docTemplates}
-              template={true}
-              handleDeleteTemplate={handleDeleteDocument}
-              handleDownload={handleDocumentDownload}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
-            />
+      <div className='flex flex-col w-full'>
+        <div className='w-full max-w-7xl w-full p-2'>
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold mb-4 text-center ml-8">Documents</h2>
+            <div className="flex gap-2">
+             
+              <button
+                onClick={() => openModal('generateDocs')}
+                className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
+              >
+                <Sparkles className="w-5 h-5" />
+                Generate Documents
+              </button>
+            </div>
+          </div>
+          <div className="w-full max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div className='rounded-xl p-6'>
+              <TemplateCards
+                documents={docTemplates}
+                template={true}
+                handleDeleteTemplate={handleDeleteDocument}
+                handleDownload={handleDocumentDownload}
+                cardHeight="h-[420px]" cardWidth="max-w-[320px]"
+              />
+            </div>
           </div>
         </div>
-        
-        {/* Modal for Design Template and Generate Documents */}
         <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
           <React.Suspense fallback={<div className="p-4">Loading...</div>}>
             {(() => {
@@ -356,169 +348,48 @@ const NeoDocements = () => {
     );
   }
   return (
-    <div className='flex w-[100%]'>
-      <div className='hidden flex flex-col items-start border-r border-gray-200'>
-        <div className='flex items-center w-64 h-20 border-b border-gray-300'>
-          <img
-            src={photo}
-            alt='Profile'
-            className='w-12 h-12 rounded-full ml-2'
-          />
-          <div className='flex flex-col ml-4'>
-            <div className='text-sm font-semibold'>Kevin Rangel</div>
-            <div className='text-xs'>Admin</div>
-          </div>
-          <MdArrowDropDown className='w-6 h-6 ml-4' />
-        </div>
-        <div className='mt-4 w-64 px-3'>
-          <div className='flex items-center w-full pl-3 hover:bg-blue-100 rounded-lg'>
-            <GoHome className='w-5 h-5' />
-            <div className='ml-2 text-sm font-semibold py-2'>Home</div>
-          </div>
-          <div className='flex items-center w-full pl-3 mt-2 hover:bg-blue-100 rounded-lg'>
-            <FaRegFolderOpen className='w-5 h-5' />
-            <div
-              className='ml-2 text-sm text-gray-700 py-2'
-              onClick={handleProjects}
-            >
-              Projects
-            </div>
-          </div>
-          <div className='flex items-center w-full pl-3 mt-2 hover:bg-blue-100 rounded-lg'>
-            <RiLayout4Line className='w-5 h-5' />
-            <div className='ml-2 text-sm text-gray-700  py-2'>Template</div>
-          </div>
-        </div>
-      </div>
-
-      <div className='flex flex-col w-full m-2'>
-   
-        <div
-          className='bg-gradient-to-r from-purple-500 to-blue-500 h-52 rounded-lg mt-4 ml-4 p-10 hidden'
-          style={{ height: "220px" }}
-        >
-          <div
-            className='relative w-[500px] mx-auto '
-            style={{ width: "500px" }}
-          >
-            <BsSearch className='absolute h-max top-1/2 left-5 transform -translate-y-1/2 pointer-events-none' />
-            <input
-              className='w-full pl-10 py-2 border border-gray-300 rounded-full text-sm outline-none'
-              placeholder='Search'
-            />
-          </div>
-
-          <div className='flex mt-4 '>
-            <div className='flex flex-col items-center mb-4 w-full '>
-              <div
-                className={`flex flex-col items-center justify-center w-52 h-24 border-gray-500     shadow-lg rounded-lg text-white mx-4 ${
-                  isDragging ? "border-green-500 bg-blue-100" : "border-white"
-                }`}
-                onDragOver={handleDragOver}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <div className='text-center py-10 relative w-full mb-10'>
-                  <input
-                    type='file'
-                    name='docxFile'
-                    accept='.docx, .pdf'
-                    onChange={handleFileChange}
-                    className='opacity-0 absolute inset-0 cursor-pointer border border-gray-300 shadow-lg shadow-white'
-                  />
-                  <button className='mt-2 px-4 py-2 text-white rounded hover:bg-blue-700 justify-between'>
-                    <FaUpload className='m-6 mb-1 text-white' />
-                    <span>Upload</span>
-                  </button>
-                </div>
-              </div>
-              {uploading && (
-                <div className='fixed inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 z-50'>
-                  <div className='loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32'></div>
-                </div>
-              )}
-              <div
-                id='container'
-                style={{
-                  overflowY: "auto",
-                  border: "1px solid #ccc",
-                  marginTop: "20px",
-                  padding: "20px",
-                  position: "relative",
-                  display: "none",
-                }}
-                ref={contentRef}
-              ></div>
-            </div>
-          </div>
-        </div>
-        <div className='flex flex-col p-4 space-y-8'>
-          <div className='w-full max-w-5xl'>
-
-            <div className='flex justify-center'>
-            
-            </div>
-          </div>
-          {/* 
-  <div className="w-full max-w-4xl">
-    <h2 className="text-2xl font-semibold mb-4 text-left">Recent Docs</h2>
-    <div className="flex justify-center space-x-6">
-    {loading && <div>Loading...</div>}
-      <TemplateCards documents={recentDocuments} handleDeleteTemplate={handleDeleteTemplate} />
-    </div>
-  </div> */}
-
-          <div className='w-full max-w-6xl space-y-4'>
-            <div className="md:flex justify-between">
-            <h2 className='text-2xl font-semibold mb-4 text-left'>
-              Documents 
-            </h2>
-                 {/* Add Design Template and Generate Documents buttons for regular users */}
-        <div>
-         
+    <div className='flex flex-col w-full'>
+      <div className='w-full max-w-8xl w-full p-2'>
+        <div className="md:flex justify-between items-center">
+          <h2 className="text-xl font-bold md:mb-4 text-left md:ml-14">Documents</h2>
           <button
             onClick={() => openModal('generateDocs')}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
+            className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
           >
             <Sparkles className="w-5 h-5" />
             Generate Documents
           </button>
         </div>
-      
-            </div>
-            <div className='rounded-xl p-6'>
-              <TemplateCards
-                documents={docTemplates}
-                template={true}
-                handleDeleteTemplate={handleDeleteDocument}
-                handleDownload={handleDocumentDownload}
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 "
-              />
-            </div>
+        <div className="w-full max-w-7xl h-35 mx-auto sm:px-6 lg:px-8 py-6">
+          <div className='rounded-xl mb-8 h-30'>
+            <TemplateCards
+              documents={docTemplates}
+              template={true}
+              handleDeleteTemplate={handleDeleteDocument}
+              handleDownload={handleDocumentDownload}
+              cardHeight="h-[420px]" cardWidth="max-w-[320px]"
+            />
           </div>
         </div>
-        
-        {/* Modal for Design Template and Generate Documents */}
-        <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <React.Suspense fallback={<div className="p-4">Loading...</div>}>
-            {(() => {
-              try {
-                if (displayPage === 'designTemplates') {
-                  return <DesignTemplate onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
-                }
-                if (displayPage === 'generateDocs') {
-                  return <GenerateDocument onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
-                }
-                return <div className="p-4 text-gray-500">No content selected.</div>;
-              } catch (err) {
-                console.error('Error rendering modal content:', err);
-                return <div className="p-4 text-red-500">An error occurred while loading the modal content.</div>;
-              }
-            })()}
-          </React.Suspense>
-        </NeoModal>
       </div>
+      <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <React.Suspense fallback={<div className="p-4">Loading...</div>}>
+          {(() => {
+            try {
+              if (displayPage === 'designTemplates') {
+                return <DesignTemplate onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
+              }
+              if (displayPage === 'generateDocs') {
+                return <GenerateDocument onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
+              }
+              return <div className="p-4 text-gray-500">No content selected.</div>;
+            } catch (err) {
+              console.error('Error rendering modal content:', err);
+              return <div className="p-4 text-red-500">An error occurred while loading the modal content.</div>;
+            }
+          })()}
+        </React.Suspense>
+      </NeoModal>
     </div>
   );
 };

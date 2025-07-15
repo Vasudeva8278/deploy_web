@@ -61,7 +61,7 @@ const Clients = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center p-8 bg-white rounded-lg shadow-lg">
+        <div className="text-center p-8 rounded-lg shadow-lg">
           <div className="text-red-500 text-xl mb-4">⚠️</div>
           <h3 className="text-lg font-semibold text-gray-800 mb-2">Error Loading Clients</h3>
           <p className="text-gray-600">{error}</p>
@@ -77,90 +77,66 @@ const Clients = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
-      
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
-              <p className="text-sm text-gray-500">Manage your client portfolio</p>
+    <>
+      <div className="flex">
+        <div className="flex flex-col w-full">
+          <div className="w-full max-w-8xl w-full p-2 ">
+          <div className="md:flex justify-between items-center" >
+        <h2 className="text-xl font-bold md:mb-4 text-left md:ml-9">Clinets</h2>
+        <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md"
+              >
+                <FaUserPlus className="w-5 h-5" />
+                Add Client
+              </button>
+        </div>
+
+            <div className="flex justify-between items-center ml-2">
+              {/* Optionally, add a search bar or other controls here for consistency */}
             </div>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              onClick={() => setIsModalOpen(true)}
-            >
-              <FaUserPlus className="mr-2" />
-              Add Client
-            </motion.button>
-          </div>
-        </div>
-      </div>
-
-     
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FaSearch className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Search clients..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-     
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredClients.map(client => (
-            <motion.div
-              key={client._id}
-              className="bg-white rounded-lg shadow p-4 sm:p-6 cursor-pointer"
-              onClick={() => handleClientClick(client)}
-            >
-              <div className="flex justify-between items-start">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <FaFolder className="h-6 w-6 text-blue-500" />
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 sm:mt-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 sm:mt-0">
+                {filteredClients.map(client => (
+                  <motion.div
+                    key={client._id}
+                    className="bg-white rounded-lg shadow p-4 sm:p-6 cursor-pointer transition-transform hover:scale-[1.02] hover:shadow-lg"
+                    onClick={() => handleClientClick(client)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <FaFolder className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <FaEllipsisV />
+                      </button>
+                    </div>
+                    <h3 className="mt-4 text-lg font-medium text-gray-900">{client.name}</h3>
+                    <div className="flex items-center text-sm text-gray-500">
+                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                        {client.documents.length} Documents
+                      </span>
+                    </div>
+                    <div className="mt-4 flex items-center text-sm text-gray-500">
+                      <span>Last updated: {new Date().toLocaleDateString()}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              {filteredClients.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 text-6xl mb-4">📁</div>
+                  <h3 className="text-lg font-medium text-gray-900">No clients found</h3>
+                  <p className="mt-2 text-gray-500">Try adjusting your search terms</p>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <FaEllipsisV />
-                </button>
-              </div>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">{client.name}</h3>
-              <div className="mt-2 flex items-center text-sm text-gray-500">
-                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                  {client.documents.length} Documents
-                </span>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-gray-500">
-                <span>Last updated: {new Date().toLocaleDateString()}</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {filteredClients.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">📁</div>
-            <h3 className="text-lg font-medium text-gray-900">No clients found</h3>
-            <p className="mt-2 text-gray-500">Try adjusting your search terms</p>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
-
-      
       <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <div className="p-4 sm:p-6  w-full max-w-md mx-auto">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">
-            Add New Client
-          </h2>
-          
+        <div className="p-4 sm:p-6 w-full max-w-md mx-auto">
+          <h2 className="text-xl font-semibold text-gray-800 mb-6">Add New Client</h2>
           <div className="space-y-4">
             <div>
               <label htmlFor="projectSelect" className="block text-sm font-medium text-gray-700 mb-1">
@@ -180,7 +156,6 @@ const Clients = () => {
                 ))}
               </select>
             </div>
-
             <div className="flex justify-end space-x-3">
               <button
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
@@ -201,7 +176,7 @@ const Clients = () => {
           </div>
         </div>
       </NeoModal>
-    </div>
+    </>
   );
 };
 

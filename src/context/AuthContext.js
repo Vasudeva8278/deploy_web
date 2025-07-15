@@ -4,7 +4,7 @@ import axios from 'axios';
 const AuthContext = createContext();
 
 // Hardcoded base URL for local development
-const BASE_URL = 'http://13.200.107.101:7000';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://13.200.200.137:7000';
 console.log('BASE_URL:', BASE_URL);
 
 axios.defaults.baseURL = BASE_URL; // Set the base URL for Axios
