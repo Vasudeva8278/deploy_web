@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
+import { LuCreditCard } from "react-icons/lu";
+import { FaTable } from "react-icons/fa";
+
 import { MdKeyboardArrowDown, MdArrowDropDown } from "react-icons/md";
 import { RiMenuFill, RiLayout4Line } from "react-icons/ri";
 import { IoNotifications } from "react-icons/io5";
@@ -12,7 +15,7 @@ import {
 } from "react-icons/fa";
 import { GoHome } from "react-icons/go";
 import { FileText, Sparkles } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CanvasThumbnails from "./CanvasThumbnails";
 import photo from "../Assets/photo.png";
 import * as docx from "docx-preview";
@@ -27,12 +30,15 @@ import {
   deleteDocument1,
   downloadDocument1,
   getDocumentsWithTemplateNames,
+  getHomePageDocuments,
 } from "../services/documentApi";
 import SearchHeader from "./SearchHeader";
 import DesignTemplate from './DesignTemplate';
 import GenerateDocument from './GenerateDocument';
 import NeoModal from './NeoModal';
 import { AuthContext } from "../context/AuthContext";
+import DocumentSideBar from './DocumentSideBar';
+import { getAllProjects } from "../services/projectApi";
 
 const NeoDocements = () => {
   const { user } = useContext(AuthContext);
@@ -297,53 +303,103 @@ const NeoDocements = () => {
     }
   };
 
+  const [viewMode, setViewMode] = useState('card'); // Add viewMode state
+  const [selectedTemplateFileName, setSelectedTemplateFileName] = useState(null);
+  const { id: selectedProjectId } = useParams();
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
+
+  const filteredDocs = selectedTemplateFileName
+    ? docTemplates.filter(doc =>
+        Array.isArray(doc.templates) && doc.templates.includes(selectedTemplateFileName)
+      )
+    : docTemplates;
+
+  useEffect(() => {
+    setLoading(true);
+    setSelectedTemplateFileName(null); // Reset template filter on project change
+    if (!selectedProjectId) {
+      getDocumentsWithTemplateNames()
+        .then((docs) => {
+          setDocuments(docs);
+          console.log("All docs:", docs);
+        })
+        .catch(() => setDocuments([]))
+        .finally(() => setLoading(false));
+    } else {
+      getHomePageDocuments(selectedProjectId)
+        .then((docs) => {
+          setDocuments(docs);
+          console.log("Project docs:", docs);
+        })
+        .catch(() => setDocuments([]))
+        .finally(() => setLoading(false));
+    }
+  }, [selectedProjectId]);
+
   if (isExecutive || isExpert) {
     return (
-      <div className='flex flex-col w-full'>
-        <div className='w-full max-w-7xl w-full p-2'>
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold mb-4 text-center ml-8">Documents</h2>
-            <div className="flex gap-2">
-             
-              <button
-                onClick={() => openModal('generateDocs')}
-                className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
-              >
-                <Sparkles className="w-5 h-5" />
-                Generate Documents
-              </button>
+      <div className='flex flex-row w-full'>
+        <DocumentSideBar onTemplateSelect={setSelectedTemplateFileName} />
+        <div className='flex flex-col w-full'>
+          <div className='w-full max-w-7xl w-full p-2'>
+            <div className="flex justify-between items-center">
+             <h1 className="text-2xl font-semibold text-gray-900 mb-4">Documents</h1>
+              <div>
+                <button
+                  className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  onClick={() => setViewMode('card')}
+                >
+                  <LuCreditCard className="inline-block w-5 h-5" />
+                </button>
+                <button
+                  className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <FaTable className="inline-block w-5 h-5" />
+                </button>
+              </div>
+           
+                <button
+                  onClick={() => openModal('generateDocs')}
+                  className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  Generate Documents
+                </button>
+          
+            </div>
+            <div className="w-full max-w-7xl mx-auto sm:px-6 lg:px-8">
+              <div className='rounded-xl p-6'>
+                <TemplateCards
+                  documents={filteredDocs}
+                  template={true}
+                  handleDeleteTemplate={handleDeleteDocument}
+                  handleDownload={handleDocumentDownload}
+                  cardHeight="h-[420px]" cardWidth="max-w-[320px]"
+                  viewMode={viewMode}
+                />
+              </div>
             </div>
           </div>
-          <div className="w-full max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div className='rounded-xl p-6'>
-              <TemplateCards
-                documents={docTemplates}
-                template={true}
-                handleDeleteTemplate={handleDeleteDocument}
-                handleDownload={handleDocumentDownload}
-                cardHeight="h-[420px]" cardWidth="max-w-[320px]"
-              />
-            </div>
-          </div>
+          <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+            <React.Suspense fallback={<div className="p-4">Loading...</div>}>
+              {(() => {
+                try {
+                  if (displayPage === 'generateDocs') {
+                    return <GenerateDocument onClose={() => setIsModalOpen(false)} projectId={selectedProjectId || null} templateId={selectedTemplateId || null} />;
+                  }
+                  if (displayPage === 'designTemplates') {
+                    return <DesignTemplate onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
+                  }
+                  return <div className="p-4 text-gray-500">No content selected.</div>;
+                } catch (err) {
+                  console.error('Error rendering modal content:', err);
+                  return <div className="p-4 text-red-500">An error occurred while loading the modal content.</div>;
+                }
+              })()}
+            </React.Suspense>
+          </NeoModal>
         </div>
-        <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <React.Suspense fallback={<div className="p-4">Loading...</div>}>
-            {(() => {
-              try {
-                if (displayPage === 'designTemplates') {
-                  return <DesignTemplate onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
-                }
-                if (displayPage === 'generateDocs') {
-                  return <GenerateDocument onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;
-                }
-                return <div className="p-4 text-gray-500">No content selected.</div>;
-              } catch (err) {
-                console.error('Error rendering modal content:', err);
-                return <div className="p-4 text-red-500">An error occurred while loading the modal content.</div>;
-              }
-            })()}
-          </React.Suspense>
-        </NeoModal>
       </div>
     );
   }
@@ -351,7 +407,20 @@ const NeoDocements = () => {
     <div className='flex flex-col w-full'>
       <div className='w-full max-w-8xl w-full p-2'>
         <div className="md:flex justify-between items-center">
-          <h2 className="text-xl font-bold md:mb-4 text-left md:ml-14">Documents</h2>
+        <div className="flex space-x-2 mb-4 ml-4">
+          <button
+            className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setViewMode('card')}
+          >
+            <LuCreditCard className="inline-block w-5 h-5" />
+          </button>
+          <button
+            className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setViewMode('grid')}
+          >
+            <FaTable className="inline-block w-5 h-5" />
+          </button>
+        </div>
           <button
             onClick={() => openModal('generateDocs')}
             className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
@@ -360,6 +429,8 @@ const NeoDocements = () => {
             Generate Documents
           </button>
         </div>
+        {/* Card/Grid Tabs for non-executive/expert users */}
+       
         <div className="w-full max-w-7xl h-35 mx-auto sm:px-6 lg:px-8 py-6">
           <div className='rounded-xl mb-8 h-30'>
             <TemplateCards
@@ -368,6 +439,7 @@ const NeoDocements = () => {
               handleDeleteTemplate={handleDeleteDocument}
               handleDownload={handleDocumentDownload}
               cardHeight="h-[420px]" cardWidth="max-w-[320px]"
+              viewMode={viewMode}
             />
           </div>
         </div>

@@ -51,7 +51,7 @@ const Clients = () => {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-auto border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading clients...</p>
         </div>
       </div>
@@ -92,11 +92,9 @@ const Clients = () => {
               </button>
         </div>
 
-            <div className="flex justify-between items-center ml-2">
-              {/* Optionally, add a search bar or other controls here for consistency */}
-            </div>
-            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 sm:mt-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 sm:mt-0">
+          
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-1 sm:mt-5 2xl:mr-24">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 sm:mt-0 ">
                 {filteredClients.map(client => (
                   <motion.div
                     key={client._id}

@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import * as docx from "docx-preview";
 import { useNavigate } from "react-router-dom";
 import { getAllProjects } from "../services/projectApi";
-import { createTemplate } from "../services/templateApi";
+import { createTemplate, getAllTemplates, getTemplatesByProjectId } from "../services/templateApi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ProjectContext } from "../context/ProjectContext";
@@ -23,10 +23,45 @@ const DesignTemplate = ({ onClose, value, hasProject }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState("");
   const fileInputRef = useRef(null);
-  const { projects } = useContext(ProjectContext);
+  const [projects, setProjects] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
 
   const handleSelectDocument = (docId) => {
     navigate(`/document/${docId}?projectId=${selectedProject}`);
+  };
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        let response;
+        if (selectedProject) {
+          response = await getTemplatesByProjectId(selectedProject);
+        } else {
+          response = await getAllTemplates();
+        }
+        setTemplates(response || []);
+      } catch (error) {
+        setError("Failed to fetch templates");
+      }
+    };
+    fetchTemplates();
+  }, [selectedProject]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await getAllProjects();
+        setProjects(response || []);
+      } catch (error) {
+        setError("Failed to fetch projects");
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  const handleTemplateChange = (e) => {
+    setSelectedTemplate(e.target.value);
   };
 
   /*useEffect(() => {
@@ -222,15 +257,15 @@ const DesignTemplate = ({ onClose, value, hasProject }) => {
               onChange={handleProjectChange}
               disabled={hasProject}
             >
-              <option>Select project</option>
+              <option value="">Select project</option>
               {projects.map((project) => (
                 <option key={project._id} value={project._id}>
-                  {" "}
-                  {project.projectName}{" "}
+                  {project.projectName}
                 </option>
               ))}
             </select>
           </div>
+          
           <div className="hidden">
             <label className="block text-sm font-medium text-gray-700">
               Block

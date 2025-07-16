@@ -29,7 +29,7 @@ import {
 } from "../services/documentApi";
 import SearchHeader from "./SearchHeader";
 
-const Neo = () => {
+const Neo = ({ activeTab: propActiveTab }) => {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [recentDocuments, setRecentDocuments] = useState([]);
@@ -41,6 +41,14 @@ const Neo = () => {
   const contentRef = useRef(null);
   const [conversionStatus, setConversionStatus] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState(propActiveTab || 'templates');
+
+  // Sync with prop if it changes
+  useEffect(() => {
+    if (propActiveTab && propActiveTab !== activeTab) {
+      setActiveTab(propActiveTab);
+    }
+  }, [propActiveTab]);
 
   const handleSelectDocument = (docId) => {
     navigate(`/document/${docId}`);
@@ -313,104 +321,56 @@ const Neo = () => {
       </div>
 
       <div className='flex flex-col w-full m-2'>
-       
-        <div
-          className='bg-gradient-to-r from-purple-500 to-blue-500 h-52 rounded-lg mt-4 ml-4 p-10 hidden'
-          style={{ height: "220px" }}
-        >
-          <div
-            className='relative w-[500px] mx-auto '
-            style={{ width: "500px" }}
+        {/* Tabs */}
+        <div className="flex space-x-4 mb-6 ml-6">
+          <button
+            className={`px-4 py-2 rounded-t-lg font-semibold focus:outline-none transition-colors duration-200 ${activeTab === 'templates' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setActiveTab('templates')}
           >
-            <BsSearch className='absolute h-max top-1/2 left-5 transform -translate-y-1/2 pointer-events-none' />
-            <input
-              className='w-full pl-10 py-2 border border-gray-300 rounded-full text-sm outline-none'
-              placeholder='Search'
-            />
-          </div>
-
-          <div className='flex mt-4 '>
-            <div className='flex flex-col items-center mb-4 w-full '>
-              <div
-                className={`flex flex-col items-center justify-center w-52 h-24 border-gray-500     shadow-lg rounded-lg text-white mx-4 ${
-                  isDragging ? "border-green-500 bg-blue-100" : "border-white"
-                }`}
-                onDragOver={handleDragOver}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <div className='text-center py-10 relative w-full mb-10'>
-                  <input
-                    type='file'
-                    name='docxFile'
-                    accept='.docx, .pdf'
-                    onChange={handleFileChange}
-                    className='opacity-0 absolute inset-0 cursor-pointer border border-gray-300 shadow-lg shadow-white'
-                  />
-                  <button className='mt-2 px-4 py-2 text-white rounded hover:bg-blue-700 justify-between'>
-                    <FaUpload className='m-6 mb-1 text-white' />
-                    <span>Upload</span>
-                  </button>
-                </div>
+            Templates
+          </button>
+          <button
+            className={`px-4 py-2 rounded-t-lg font-semibold focus:outline-none transition-colors duration-200 ${activeTab === 'documents' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setActiveTab('documents')}
+          >
+            Documents
+          </button>
+        </div>
+        {/* Content based on tab */}
+        {activeTab === 'templates' && (
+          <div className='flex flex-col p-4 space-y-8'>
+            <div className='w-full max-w-8xl'>
+              <h2 className='text-2xl font-semibold mb-4 text-left ml-6'>
+                 Templates
+              </h2>
+              <div className='flex justify-center'>
+                {loading && <div>Loading...</div>}
+                <TemplateCards
+                  documents={documents}
+                  handleDeleteTemplate={handleDeleteTemplate}
+                />
               </div>
-              {uploading && (
-                <div className='fixed inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 z-50'>
-                  <div className='loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32'></div>
-                </div>
-              )}
-              <div
-                id='container'
-                style={{
-                  overflowY: "auto",
-                  border: "1px solid #ccc",
-                  marginTop: "20px",
-                  padding: "20px",
-                  position: "relative",
-                  display: "none",
-                }}
-                ref={contentRef}
-              ></div>
             </div>
           </div>
-        </div>
-        <div className='flex flex-col p-4 space-y-8'>
-          <div className='w-full max-w-8xl'>
-            <h2 className='text-2xl font-semibold mb-4 text-left ml-6'>
-               Templates
-            </h2>
-            <div className='flex justify-center'>
-              {loading && <div>Loading...</div>}
-              <TemplateCards
-                documents={documents}
-                handleDeleteTemplate={handleDeleteTemplate}
-              />
+        )}
+        {activeTab === 'documents' && (
+          <div className='flex flex-col p-4 space-y-8'>
+            <div className='w-full max-w-8xl space-y-4'>
+              <h2 className='text-2xl font-semibold mb-4 text-left ml-6 sm:ml-3'>
+                Documents 
+              </h2>
+              <div className='mr-4'>
+                <TemplateCards
+                  documents={docTemplates}
+                  template={true}
+                  handleDeleteTemplate={handleDeleteDocument}
+                  handleDownload={handleDocumentDownload}
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
+                />
+              </div>
             </div>
           </div>
-          {/* 
-  <div className="w-full max-w-4xl">
-    <h2 className="text-2xl font-semibold mb-4 text-left">Recent Docs</h2>
-    <div className="flex justify-center space-x-6">
-    {loading && <div>Loading...</div>}
-      <TemplateCards documents={recentDocuments} handleDeleteTemplate={handleDeleteTemplate} />
-    </div>
-  </div> */}
-
-          <div className='w-full max-w-8xl space-y-4'>
-            <h2 className='text-2xl font-semibold mb-4 text-left ml-6 sm:ml-3'>
-              Documents 
-            </h2>
-            <div className='mr-4'>
-              <TemplateCards
-                documents={docTemplates}
-                template={true}
-                handleDeleteTemplate={handleDeleteDocument}
-                handleDownload={handleDocumentDownload}
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
-              />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

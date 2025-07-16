@@ -85,7 +85,7 @@ const Navigation = () => {
   };
 
   const handleTemplates = () => {
-    navigate(`/Neo`);
+    navigate(`/NeoTemplates`);
   };
 
   const handleDocuments = () => {
@@ -220,7 +220,7 @@ const Navigation = () => {
           if (isAdmin) {
             navigate('/dashboard');
           } else if (isExpert) {
-            navigate('/Neo');
+            navigate('/NeoTemplates');
           } else if (isExecutive) {
             navigate('/NeoDocements');
           }
@@ -237,7 +237,7 @@ const Navigation = () => {
               <NavItem to="/dashboard" icon={GoHome} label="Home" />
               <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" />
               <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" />
-              <NavItem to="/Neo" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" />
+              <NavItem to="/NeoTemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" />
               <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" />
               <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" />
               <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" />
@@ -249,7 +249,7 @@ const Navigation = () => {
               <NavItem to="/dashboard" icon={GoHome} label="Home" featureKey={null} />
               <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" featureKey="projects" />
               <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" featureKey="Clients" />
-              <NavItem to="/Neo" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
+              <NavItem to="/Neotemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
               <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
               <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" featureKey="Users" />
               <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" featureKey={null} />
@@ -258,7 +258,7 @@ const Navigation = () => {
             <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
           ) : isExpert ? (
             <>
-              <NavItem to="/Neo" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
+              <NavItem to="/NeoTemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
               <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
             </>
           ) : (
@@ -266,7 +266,7 @@ const Navigation = () => {
               <NavItem to="/dashboard" icon={GoHome} label="Home" featureKey={null} />
               <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" featureKey="projects" />
               <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" featureKey="Clients" />
-              <NavItem to="/Neo" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
+              <NavItem to="/NeoTemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
               <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
               <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" featureKey="Users" />
               <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" featureKey={null} />

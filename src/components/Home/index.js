@@ -6,14 +6,10 @@ import Navigation from "../Navigation";
 import TemplatesSidebar from "../TemplatesSidebar.tsx";
 import ProfileSettings from "../Profile/ProfileSettings";
 import Dashboard from "../Dashboard/Dashboard";
-import MainPage from "../MainPage";
-import Homepage from "../Homepage";
-import Neo from "../../components/Neo";
 import DocxToTextConverter from "../Template/DocxToTextConverter";
 import ExportComponent from "../Documents/ExportComponent";
 import DocumentView from "../Documents/DocumentView";
 import DocumentContainer from "../Documents/DocumentContainer";
-import NeoTemplate from "../NeoTemplate";
 import NeoDocements from "../NeoDocements";
 import ProfileHeader from "../profileheader";
 import ListofDocuments from "../Documents/ListofDocument";
@@ -25,7 +21,9 @@ import ViewClient from "../../pages/ViewClient";
 import LandingPage from "../../pages/LandingPage.tsx";
 import UserManage from "../../pages/UserManage";
 import RoleFeatureManagement from "../RoleFeatureManagement";  
-
+import NeoTemplates from "../NeoTemplate";
+import DocumentSideBar from "../DocumentSideBar.js";
+import NeoProjectDocuments from "../NeoProductsDocuements.jsx";
 const Home = () => {
   const [isNavigationVisible, setIsNavigationVisible] = useState(true);
   const [roleFeatures, setRoleFeatures] = useState([]);
@@ -71,6 +69,11 @@ const Home = () => {
     setIsNavigationVisible((prevState) => !prevState);
   };
 
+  const isNeoTemplates = location.pathname.startsWith('/NeoTemplates');
+  const isNeoDocuments = location.pathname.startsWith('/NeoDocements');
+  const isNeoProjectTemplates = /^\/projects\/[^/]+$/.test(location.pathname);
+  const isNeoProjectDocuments = /^\/NeoDocuments\/[^/]+$/.test(location.pathname);
+
   if (featuresLoading) return null; // or a spinner
 
   return (
@@ -78,18 +81,40 @@ const Home = () => {
       <div>
         <ProfileHeader />
       </div>
+      
+      
+      
       <div className='flex flex-1'>
-        {isNavigationVisible && (
-          <div className={`${isMobile ? 'w-20' : 'w-64'} flex-shrink-0`}>
-            <Navigation />
-          </div>
-        )}
+    {/* LEFT: Navigation Sidebar */}
+    {isNavigationVisible && !isMobile && (
+      <div className='w-20 flex-shrink-0'>
+        <Navigation />
+      </div>
+    )}
 
-        {!isMobile && <TemplatesSidebar />}
+    {/* LEFT: TemplatesSidebar */}
+    {!isMobile && (isNeoTemplates || isNeoProjectTemplates) && (
+      <div className='w-44 flex-shrink-0'>
+  <TemplatesSidebar />
+</div>
 
-        <div className={`flex-1 p-2 overflow-auto bg-gray-50 rounded-3xl mt-16 border-2 border-gray-200 ${
-          isMobile ? 'ml-1' : 'ml-2'
-        }`}>
+    )}
+
+{!isMobile && (isNeoDocuments || isNeoProjectDocuments) && (
+      <div className='w-44 flex-shrink-0'>
+  <DocumentSideBar />
+</div>
+
+    )}
+
+
+
+
+
+<div className="flex-1 p-2 overflow-auto bg-gray-50 rounded-3xl mt-16 border-2 border-gray-200 mr-2 ml-2">
+            
+
+          
           
           <Routes>
             {roleFeatures.includes('Users') && (
@@ -98,7 +123,7 @@ const Home = () => {
             <Route path='/dashboard' element={<Dashboard />} />
             <Route path='/' element={<LandingPage />} />
             {roleFeatures.includes('Templates') && (
-              <Route path='/Neo' element={<NeoTemplate />} />
+              <Route path='/NeoTemplates' element={<NeoTemplates />} />
             )}
             {roleFeatures.includes('Documents') && (
               <Route path='/NeoDocements' element={<NeoDocements />} />
@@ -138,6 +163,11 @@ const Home = () => {
             {roleFeatures.includes('projects') && (
               <Route path='/projects/:id' element={<NeoProjectTemplates />} />
             )}
+
+           {roleFeatures.includes('documents') && (
+              <Route path='/NeoDocements/Documents/:id' element={<NeoProjectTemplates />} />
+            )}
+
             {roleFeatures.includes('Users') && (
               <Route path='/UserManage' element={<UserManage />} />
             )}
@@ -156,3 +186,5 @@ const Home = () => {
 };
 
 export default Home;
+
+

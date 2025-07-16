@@ -7,52 +7,32 @@ import { AuthContext } from '../context/AuthContext';
 import { useLocation, useParams } from 'react-router-dom';
 import { getAllTemplates } from "../services/templateApi";
 
-interface TemplatesSidebarProps {
-  // Remove isVisible prop since it's now permanent
-}
-
 const NEO_EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
 const NEO_EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
 
-interface DocumentData {
-  _id: string;
-  name: string;
-  templateName?: string;
-  createdAt?: string;
-  projectId: string;
-  projectName: string;
-}
-
-interface ProjectDocuments {
-  projectId: string;
-  projectName: string;
-  documents: DocumentData[];
-  expanded: boolean;
-}
-
-const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
-  const [projectDocuments, setProjectDocuments] = useState<ProjectDocuments[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
+const DocumentSideBar = () => {
+  const [projectDocuments, setProjectDocuments] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const { id: activeProjectId } = useParams();
 
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
-  const [templateError, setTemplateError] = useState<string | null>(null);
+  const [templateError, setTemplateError] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState("all");
 
   // Function to check if a project is active based on current route
-  const isProjectActive = (projectId: string) => {
+  const isProjectActive = (projectId) => {
     return location.pathname.includes(`/projects/${projectId}`) || activeProjectId === projectId;
   };
 
   // Function to get role display name
-  const getRoleDisplayName = (roleId: string) => {
+  const getRoleDisplayName = (roleId) => {
     switch (roleId) {
       case NEO_EXPERT_ROLE_ID:
         return "NEO Expert";
@@ -95,13 +75,13 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
         setLoading(true);
         const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
         
-        const projectDocsPromises = projects.map(async (project: any) => {
+        const projectDocsPromises = projects.map(async (project) => {
           try {
             const response = await axios.get(
               `${API_URL}/api/projectDocs/${project._id}/documents/documents-with-template-names`
             );
             
-            const documents = (response.data || []).map((doc: any) => ({
+            const documents = (response.data || []).map((doc) => ({
               ...doc,
               projectId: project._id,
               projectName: project.projectName
@@ -164,7 +144,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
     fetchTemplates();
   }, []);
 
-  const toggleProject = (projectId: string, event: React.MouseEvent) => {
+  const toggleProject = (projectId, event) => {
     // Stop propagation to prevent project navigation when clicking the expand arrow
     event.stopPropagation();
     setProjectDocuments(prev => 
@@ -176,7 +156,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
     );
   };
 
-  const handleProjectClick = (projectId: string, projectData: any) => {
+  const handleProjectClick = (projectId, projectData) => {
     // Navigate to the project page with project data in state
     navigate(`/projects/${projectId}`, { 
       state: { 
@@ -188,7 +168,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
     });
   };
 
-  const handleDocumentClick = (documentId: string) => {
+  const handleDocumentClick = (documentId) => {
     // Navigate to document view page
     navigate(`/document/${documentId}`);
   };
@@ -302,11 +282,11 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
           {/* All Button */}
           <div
             className={`flex items-center px-1 py-1.5 rounded cursor-pointer transition-colors duration-200 mb-1 ${
-              selectedProjectId === "all"
-                ? "bg-blue-100 font-bold text-blue-700"
-                : "hover:bg-gray-100 text-gray-800"
+              location.pathname === '/NeoDocements'
+                ? 'bg-blue-100 font-bold text-blue-700'
+                : 'hover:bg-gray-100 text-gray-800'
             }`}
-            onClick={() => setSelectedProjectId("all")}
+            onClick={() => navigate('/NeoDocements')}
             title="Show all documents"
           >
             <span className="text-xs font-medium flex-1 truncate">All</span>
@@ -381,4 +361,4 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
   );
 };
 
-export default TemplatesSidebar;
+export default DocumentSideBar;

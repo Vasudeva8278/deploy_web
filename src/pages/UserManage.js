@@ -7,35 +7,27 @@ import 'react-toastify/dist/ReactToastify.css';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import bannerImage from "../Assets/Banner.jpg";
-import { FaTrash, FaEdit, FaSave, FaUserCircle, FaEye } from 'react-icons/fa';
+import { FaTrash, FaEdit, FaSave, FaUser, FaEye } from 'react-icons/fa';
 import { useCallback } from 'react';
-import photo from '../Assets/general_profile.png';
 import UserCard from '../components/UserCard';
-
-
+import Select from 'react-select';
+import { getAllProjects } from "../services/projectApi";
 const api = axios.create({
   baseURL: `${process.env.REACT_APP_BASE_URL}/api/users/getalluser`, // updated baseURL
 });
 
 const NEO_EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
 const NEO_EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
-const SUPER_ADMIN_ROLE_ID = "685f9b7d3d988647b344e5ca";
-const NEO_ORGANIZATION_ID = "6870a1c2f0884e1560f8dadf";
-
+const SUPER_ADMIN_ROLE_ID = "68621581db15fbb9bbd2f839";
 const roleOptions = [
   { value: NEO_EXPERT_ROLE_ID, label: 'Neo Expert' },
   { value: NEO_EXECUTIVE_ROLE_ID, label: 'Neo Executive' },
-  { value: SUPER_ADMIN_ROLE_ID, label: 'Admin' },
-  { value: NEO_ORGANIZATION_ID, label: 'Neo Organization' } 
+  { value: SUPER_ADMIN_ROLE_ID, label: 'Admin' }
 ];
 
 const FEATURE_LIST = ["Projects", "Clients", "Templates", "Documents", "Users"];
 
 const UserManage = () => {
-  const [search, setSearch] = useState('');
-const [roleFilter, setRoleFilter] = useState('All');
-const [page, setPage] = useState(1);
-const [pageSize, setPageSize] = useState(5);
   const { user } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,13 +36,18 @@ const [pageSize, setPageSize] = useState(5);
   const [roles, setRoles] = useState([]);
   const [roleLoading, setRoleLoading] = useState(true);
   const [viewUserId, setViewUserId] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [editProjects, setEditProjects] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch roles and their features
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const rolesRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/roles/`);
-        setRoles(rolesRes.data);
+        const API_URL = process.env.REACT_APP_BASE_URL;
+        console.log("ur;;;;",API_URL);
+        const res = await axios.get(`${API_URL}/api/roles/`);
+        setRoles(res.data);
       } catch (error) {
         toast.error('Failed to fetch roles');
       } finally {
@@ -69,7 +66,8 @@ const [pageSize, setPageSize] = useState(5);
       ? role.features.filter(f => f !== feature)
       : [...(role.features || []), feature];
     try {
-      await axios.put(`${process.env.REACT_APP_BASE_URL}/api/roles/${roleId}`, { features: updatedFeatures });
+      const API_URL = process.env.REACT_APP_API_URL
+      await axios.put(`${API_URL}/api/roles/${roleId}`, { features: updatedFeatures });
       setRoles(roles.map(r => r._id === roleId ? { ...r, features: updatedFeatures } : r));
       toast.success('Role features updated!');
     } catch (error) {
@@ -80,21 +78,41 @@ const [pageSize, setPageSize] = useState(5);
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const profilesRes = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/users/getalluser`);
-        console.log('profilesRes.data:', profilesRes.data);
-        // Use the array of users from the backend
-        if (profilesRes.data && Array.isArray(profilesRes.data.users)) {
-          setUsers(profilesRes.data.users);
+        const res = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/users/getalluser`);
+        console.log("API users response:", res.data);
+
+        // If the response is an array, use it. If it's a single object, wrap it in an array.
+        if (Array.isArray(res.data)) {
+          setUsers(res.data);
+        } else if (res.data && Array.isArray(res.data.users)) {
+          setUsers(res.data.users);
+        } else if (res.data && typeof res.data === 'object') {
+          setUsers([res.data]);
         } else {
           setUsers([]);
         }
       } catch (error) {
         setError(error);
+        setUsers([]); // Always fallback to array
       } finally {
         setLoading(false);
       }
     };
     fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const data = await getAllProjects();
+        setProjects(data);
+        console.log('Projects:', data);
+      } catch (err) {
+        setProjects([]);
+        console.error('Failed to fetch projects', err);
+      }
+    };
+    fetchProjects();
   }, []);
 
   const handleRoleChange = (userId, newRole) => {
@@ -104,20 +122,28 @@ const [pageSize, setPageSize] = useState(5);
   const handleUpdateUser = async (id) => {
     try {
       const newRole = editRole[id];
+      const selectedProjects = 
+        editProjects[id] !== undefined
+          ? editProjects[id]
+          : (users.find(u => u._id === id)?.features || []);
       if (!newRole) return;
-      const updateRes = await axios.put(`${process.env.REACT_APP_BASE_URL}/api/users/update-status/${id}`, { role: newRole });
-      setUsers(users.map(user => user._id === id ? { ...user, role: newRole } : user));
+      const res = await axios.put(
+        `${process.env.REACT_APP_BASE_URL}/api/users/update-status/${id}`,
+        { role: newRole, features: selectedProjects }
+      );
+      setUsers(users.map(user => user._id === id ? { ...user, role: newRole, features: selectedProjects } : user));
       setEditRole({ ...editRole, [id]: undefined });
-      toast.success('User role updated successfully!');
+      setEditProjects({ ...editProjects, [id]: undefined });
+      toast.success('User role and projects updated successfully!');
     } catch (error) {
       setError(error);
-      toast.error('Failed to update user role.');
+      toast.error('Failed to update user role and projects.');
     }
   };
 
   const handleDeleteUser = async (id) => {
     try {
-      const deleteRes = await axios.delete(`${process.env.REACT_APP_BASE_URL}/api/users/delete/${id}`);
+      const res = await axios.delete(`${process.env.REACT_APP_BASE_URL}/api/users/delete/${id}`);
       setUsers(users.filter(user => user._id !== id));
       toast.success('User deleted successfully!');
     } catch (error) {
@@ -126,40 +152,40 @@ const [pageSize, setPageSize] = useState(5);
     }
   };
 
-
-  
-
-  // Filtering logic
-  const filteredUsers = users.filter(u => {
-    const matchesSearch =
-      (u.name?.toLowerCase().includes(search.toLowerCase()) ||
-       u.email?.toLowerCase().includes(search.toLowerCase()));
-    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredUsers.length / pageSize) || 1;
-  const paginatedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
+  const projectOptions = projects.map(project => ({
+    value: project._id,
+    label: project.projectName
+  }));
 
   return (
     <>
     <ToastContainer />
-    {viewUserId && (
-      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <UserCard userid={viewUserId} onClose={() => setViewUserId(null)} />
-      </div>
-    )}
     <div>
       
+   
+    <div className="flex flex-wrap gap-4 mb-4 items-center">
+    <div>
+      <span className="font-semibold text-lg text-gray-800">User Management</span>
+    </div>
+    <input
+        type="text"
+        placeholder="Search by name..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-64 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+   
+   
       
+  </div>
 
+      {console.log('users data before render:', users)}
       {loading && (
         <div className="overflow-x-auto mt-4 border-2 border-gray-300 rounded-xl p-4">
           <table className="equipment-table">
             <thead>
               <tr>
-             
+                <th></th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
@@ -170,7 +196,6 @@ const [pageSize, setPageSize] = useState(5);
             <tbody>
               {[...Array(3)].map((_, idx) => (
                 <tr key={idx}>
-                  <td><Skeleton circle width={40} height={40} /></td>
                   <td><Skeleton width={80} /></td>
                   <td><Skeleton width={180} /></td>
                   <td><Skeleton width={100} /></td>
@@ -182,110 +207,107 @@ const [pageSize, setPageSize] = useState(5);
           </table>
         </div>
       )}
-    
-        <div className="w-full p-5 mt-8">
-  <div className="flex flex-wrap gap-4 mb-4 items-center">
-    <div>
-      <span className="font-semibold text-lg">User Management</span>
-    </div>
-    <input
-      className="border rounded-lg px-3 py-2"
-      placeholder={`Search: ${users.length} records...`}
-      value={search}
-      onChange={e => { setSearch(e.target.value); setPage(1); }}
-    />
-   
-      
-  </div>
-  <div className="bg-white rounded-xl shadow overflow-x-auto">
-    <table className="min-w-full">
-      <thead>
-        <tr className="border-b">
-          <th className="py-3 px-4 text-left">Name</th>
-          <th className="py-3 px-4 text-left">Email</th>
-          <th className="py-3 px-4 text-left">Role</th>
          
-          <th className="py-3 px-4 text-left">Actions</th>
+        <div className="overflow-x-auto">
+          <table className="equipment-table">
+      <thead>
+              <tr>
+                <th><div className='w-30 text-white'>profile</div></th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Projects</th>
+                <th>Role</th>
+                <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        {paginatedUsers
-          .filter(u =>
-            u._id !== user?._id &&
-            u._id !== user?.id &&
-            u.email !== user?.email &&
-            u.role !== NEO_ORGANIZATION_ID
-          )
-          .map(u => {
-            const isCurrentUser = u._id === user?._id || u._id === user?.id || u.email === user?.email;
-            const isAdmin = u.role === SUPER_ADMIN_ROLE_ID;
-            const isOrgUser = user.role === NEO_ORGANIZATION_ID;
-            const canEditDeleteAdmin = isAdmin && isOrgUser;
-            const canEditDelete = !isCurrentUser && (!isAdmin || canEditDeleteAdmin);
+              {Array.isArray(users) && users
+                .filter(u => user && (u._id !== user._id && u._id !== user.id))
+                .filter(u => u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map((u) => {
+                  const canEdit = true;
             return (
-              <tr key={u._id} className="border-b hover:bg-gray-50">
-                <td className="py-3 px-4 flex items-center gap-3">
-                  <img src={u.profilePic || photo} className="w-10 h-10 rounded-full object-cover" alt="" />
-                  <div>
-                    <div className="font-semibold">{u.name}</div>
-                    <div className="text-xs text-gray-500">{u.email}</div>
-                  </div>
+
+              
+                    <tr key={u._id}>
+                      <td>
+                        {u.profilePic ? (
+                          <img
+                            src={u.profilePic}
+                            alt={u.name}
+                            style={{ width: '30px', height: '30px', borderRadius: '50%' }}
+                          />
+                        ) : (
+                          <FaUser />
+                        )}
+                      </td>
+                      <td>{u.name}</td>
+                      <td>{u.email}</td>
+                      <td>
+                        {editRole[u._id] !== undefined ? (
+                          <Select
+                            isMulti
+                            options={projectOptions}
+                            value={projectOptions.filter(opt =>
+                              (editProjects[u._id] || u.features || []).includes(opt.value)
+                            )}
+                            onChange={selectedOptions => {
+                              const selected = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+                              setEditProjects(prev => ({ ...prev, [u._id]: selected }));
+                            }}
+                            placeholder="Select projects"
+                            closeMenuOnSelect={false}
+                            styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
+                          />
+                        ) : (
+                          <span>
+                            {u.features && u.features.length > 0
+                              ? projects
+                                  .filter(p => u.features.includes(p._id))
+                                  .map(p => p.projectName)
+                                  .join(', ')
+                              : <span style={{ color: '#aaa' }}>Select projects</span>
+                            }
+                          </span>
+                        )}
                 </td>
-                <td className="py-3 px-4">{u.email}</td>
-                <td className="py-3 px-4">
+                      <td>
                   {editRole[u._id] !== undefined ? (
                     <select
                       value={editRole[u._id]}
                       onChange={e => handleRoleChange(u._id, e.target.value)}
                       className="border rounded px-2 py-1"
-                      disabled={isCurrentUser || (isAdmin && !isOrgUser)}
                     >
-                    {roleOptions
-                      .filter(option => option.label !== 'Neo Organization')
-                      .map(option => (
+                            <option value='' disabled>Select new role</option>
+                            {roleOptions.map(option => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
                     </select>
                   ) : (
-                    roleOptions.find(option => option.value === u.role)?.label || u.role || 'User'
+                          u.role === NEO_EXPERT_ROLE_ID ? 'Neo Expert' : u.role === NEO_EXECUTIVE_ROLE_ID ? 'Neo Executive' : u.role === SUPER_ADMIN_ROLE_ID ? 'Admin' : 'Admin'
                   )}
                 </td>
-                <td className="py-3 px-4 flex gap-2">
-                  <button onClick={() => setViewUserId(u._id)} title="View" className="text-blue-600 hover:text-blue-800">
-                    <FaEye size={18} />
+                      <td>
+                      <button className="view-btn gap-2" title="View" onClick={() => setViewUserId(u._id)}>
+                          <FaEye />
+                        </button>
+                        {canEdit ? (
+                          editRole[u._id] !== undefined ? (
+                            <button className="save-btn " title="Save" onClick={() => handleUpdateUser(u._id)} disabled={!editRole[u._id]}>
+                              <FaSave />
                   </button>
-                  {(!canEditDelete || editRole[u._id] !== undefined && isCurrentUser) ? (
-                    <FaEdit
-                      className="text-gray-400 cursor-not-allowed"
-                      title={isCurrentUser ? "Edit (locked for yourself)" : "Edit (locked)"}
-                      disabled
-                    />
-                  ) : editRole[u._id] !== undefined ? (
-                    <FaSave
-                      className="text-green-600 cursor-pointer"
-                      title="Save"
-                      onClick={() => handleUpdateUser(u._id)}
-                    />
-                  ) : (
-                    <FaEdit
-                      className="text-gray-600 cursor-pointer"
-                      title="Edit"
-                      onClick={() => handleRoleChange(u._id, u.role)}
-                    />
-                  )}
-                  {(!canEditDelete) ? (
-                    <FaTrash
-                      className="text-gray-400 cursor-not-allowed"
-                      title={isCurrentUser ? "Delete (locked for yourself)" : "Delete (locked)"}
-                      disabled
-                    />
-                  ) : (
-                    <FaTrash
-                      className="text-red-600 cursor-pointer"
-                      title="Delete"
-                      onClick={() => handleDeleteUser(u._id)}
-                    />
-                  )}
+                          ) : (
+                            <button className="edit-btn ml-2" title="Edit" onClick={() => setEditRole({ ...editRole, [u._id]: u.role })}>
+                              <FaEdit />
+                            </button>
+                          )
+                        ) : (
+                          <button className="edit-btn ml-2" disabled><FaEdit /></button>
+                        )}
+                      
+                        <button className="delete-btn" title="Delete" onClick={() => handleDeleteUser(u._id)}>
+                          <FaTrash />
+                        </button>
                 </td>
               </tr>
             );
@@ -293,22 +315,27 @@ const [pageSize, setPageSize] = useState(5);
       </tbody>
     </table>
   </div>
-  {/* Pagination controls */}
-  <div className="flex justify-between items-center mt-4">
-    <div>
-      Page {page} of {totalPages}
-    </div>
-    <div className="flex items-center gap-2">
-      <span>Show</span>
-      <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="border rounded px-2 py-1">
-        {[5, 10, 20].map(size => <option key={size} value={size}>{size}</option>)}
-      </select>
-      <button onClick={() => setPage(p => Math.max(1, p - 1))}>&lt;</button>
-      <button onClick={() => setPage(p => Math.min(totalPages, p + 1))}>&gt;</button>
-    </div>
-  </div>
-</div>
+        {/* Print all projects after the table */}
        
+        {/* UserCard Modal Overlay */}
+        {viewUserId && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.3)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <div style={{ position: 'relative' }}>
+              <UserCard onClose={() => setViewUserId(null)} />
+            </div>
+          </div>
+        )}
    
     </div>
     </>

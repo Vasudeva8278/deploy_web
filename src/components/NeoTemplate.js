@@ -3,6 +3,9 @@ import { MdKeyboardArrowDown, MdArrowDropDown } from "react-icons/md";
 import { RiMenuFill, RiLayout4Line } from "react-icons/ri";
 import { IoNotifications } from "react-icons/io5";
 import { BsSearch } from "react-icons/bs";
+import { LuCreditCard } from "react-icons/lu";
+import { FaTable } from "react-icons/fa";
+
 import {
   FaUpload,
   FaFileAlt,
@@ -32,7 +35,7 @@ import NeoModal from "./NeoModal";
 import DesignTemplate from "./DesignTemplate";
 import { Sparkles } from 'lucide-react';
 
-const Neo = () => {
+const NeoTemplates= () => {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [recentDocuments, setRecentDocuments] = useState([]);
@@ -47,6 +50,8 @@ const Neo = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [displayPage, setDisplayPage] = useState("");
   const [editingTemplate, setEditingTemplate] = useState(null);
+  const [tab, setTab] = useState('templates'); // NEW: tab state
+  const [viewMode, setViewMode] = useState('card'); // NEW: view mode state
 
   const openModal = (page, template = null) => {
     setDisplayPage(page);
@@ -334,88 +339,58 @@ const Neo = () => {
         </div>
       </div>
 
-      <div className='flex flex-col w-full m-2'>
-       
-        <div
-          className='bg-gradient-to-r from-purple-500 to-blue-500 h-52 rounded-lg mt-4 ml-4 p-10 hidden'
-          style={{ height: "220px" }}
-        >
-          <div
-            className='relative w-[500px] mx-auto '
-            style={{ width: "500px" }}
-          >
-            <BsSearch className='absolute h-max top-1/2 left-5 transform -translate-y-1/2 pointer-events-none' />
-            <input
-              className='w-full pl-10 py-2 border border-gray-300 rounded-full text-sm outline-none'
-              placeholder='Search'
-            />
-          </div>
-
-          <div className='flex mt-4 '>
-            <div className='flex flex-col items-center mb-4 w-full '>
-              <div
-                className={`flex flex-col items-center justify-center w-52 h-24 border-gray-500     shadow-lg rounded-lg text-white mx-4 ${
-                  isDragging ? "border-green-500 bg-blue-100" : "border-white"
-                }`}
-                onDragOver={handleDragOver}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <div className='text-center py-10 relative w-full mb-10'>
-                  <input
-                    type='file'
-                    name='docxFile'
-                    accept='.docx, .pdf'
-                    onChange={handleFileChange}
-                    className='opacity-0 absolute inset-0 cursor-pointer border border-gray-300 shadow-lg shadow-white'
-                  />
-                  <button className='mt-2 px-4 py-2 text-white rounded hover:bg-blue-700 justify-between'>
-                    <FaUpload className='m-6 mb-1 text-white' />
-                    <span>Upload</span>
-                  </button>
-                </div>
-              </div>
-              {uploading && (
-                <div className='fixed inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 z-50'>
-                  <div className='loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32'></div>
-                </div>
-              )}
-              <div
-                id='container'
-                style={{
-                  overflowY: "auto",
-                  border: "1px solid #ccc",
-                  marginTop: "20px",
-                  padding: "20px",
-                  position: "relative",
-                  display: "none",
-                }}
-                ref={contentRef}
-              ></div>
-            </div>
-          </div>
-        </div>
+      <div className='flex-1 flex flex-col m-2'>
+      
         <div className='flex flex-col p-4 space-y-8'>
-          <div className='w-full max-w-8xl'>
-          <div className="md:flex justify-between items-center w-max-8xl">
-          <h2 className="text-xl font-bold md:mb-4 text-left md:ml-6">Templates</h2>
-          <button
-                onClick={() => openModal('designTemplates')}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
-              >
-                <FaFileAlt className="w-5 h-5" />
-                Design Template
-              </button>
-        </div>
-        <br></br>
+          <div className='w-full max-w-screen-2xl mx-auto'>
+            <div className="md:flex justify-between items-center w-max-8xl">
+              <h1>Templates</h1>
+                {/* Card/Grid View Tabs (parent controlled) */}
+                <div className="flex space-x-2 mb-4 ml-4">
+                <button
+                  className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  onClick={() => setViewMode('card')}
+                >
+                  <LuCreditCard className="inline-block w-5 h-5" />
+                </button>
+                <button
+                  className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <FaTable className="inline-block w-5 h-5" />
+                </button>
+              </div>
+           
+                <button
+                  onClick={() => openModal('designTemplates')}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
+                >
+                  <FaFileAlt className="w-5 h-5" />
+                  Design Template
+                </button>
           
-            <div className='flex justify-center'>
+            </div>
+            <br />
+            <div className='flex'>
               {loading && <div>Loading...</div>}
-              <TemplateCards
-                documents={documents}
-                handleDeleteTemplate={handleDeleteTemplate}
-              />
+              {tab === 'templates' && (
+                <TemplateCards
+                  documents={documents}
+                  handleDeleteTemplate={handleDeleteTemplate}
+                  handleDownload={handleDocumentDownload}
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                />
+              )}
+              {tab === 'documents' && (
+                <TemplateCards
+                  documents={docTemplates}
+                  handleDeleteTemplate={handleDeleteDocument}
+                  handleDownload={handleDocumentDownload}
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                />
+              )}
             </div>
           </div>
           {/* 
@@ -458,4 +433,4 @@ const Neo = () => {
   );
 };
 
-export default Neo;
+export default NeoTemplates;

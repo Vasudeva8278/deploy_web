@@ -30,8 +30,9 @@ import {
 import SearchHeader from "./SearchHeader";
 import ViewTemplatesHighlights from "./Template/ViewTemplatesHighlights";
 import NeoModal from "./NeoModal";
+import { getAllProjects } from "../services/projectApi";
 
-const NeoProjectTemplates = () => {
+const NeoProjectDocuments = () => {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [recentDocuments, setRecentDocuments] = useState([]);
@@ -44,23 +45,37 @@ const NeoProjectTemplates = () => {
   const [conversionStatus, setConversionStatus] = useState("");
   const [uploading, setUploading] = useState(false);
   const location = useLocation();
-  const projectData = location.state?.data;
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const { id: currentProjectId } = useParams();
+  const [projectData, setProjectData] = useState(location.state?.data || null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projectDataLoading, setProjectDataLoading] = useState(!location.state?.data);
+
+  useEffect(() => {
+    // If projectData is not present, fetch it using the projectId from the route
+    if (!projectData && currentProjectId) {
+      setProjectDataLoading(true);
+      getAllProjects()
+        .then((projects) => {
+          const found = (projects || []).find((p) => p._id === currentProjectId);
+          setProjectData(found || null);
+        })
+        .catch(() => setProjectData(null))
+        .finally(() => setProjectDataLoading(false));
+    }
+  }, [currentProjectId, projectData]);
 
   useEffect(() => {
     if (projectData && projectData._id) {
-      fetchTemplates();
-      fetchDocuments();
+      fetchTemplates(projectData._id);
+      fetchDocuments(projectData._id);
     }
   }, [projectData]);
 
-  const fetchDocuments = async () => {
-    if (!projectData || !projectData._id) return;
+  const fetchDocuments = async (projectId) => {
+    if (!projectId) return;
     try {
-      const response = await getHomePageDocuments(projectData._id);
-      const data = response;
-      setDocTemplates(data);
+      const response = await getHomePageDocuments(projectId);
+      setDocTemplates(response);
     } catch (error) {
       setError("Failed to fetch documents");
       console.error("Failed to fetch documents", error);
@@ -69,14 +84,12 @@ const NeoProjectTemplates = () => {
     }
   };
 
-  const fetchTemplates = async () => {
-    if (!projectData || !projectData._id) return;
+  const fetchTemplates = async (projectId) => {
+    if (!projectId) return;
     try {
-      const response = await getHomePageTemplates(projectData._id);
-      const data = response;
-      console.log(data);
-      setDocuments(data);
-      const sortedData = data.sort((a, b) => {
+      const response = await getHomePageTemplates(projectId);
+      setDocuments(response);
+      const sortedData = response.sort((a, b) => {
         if (!a.updatedTime) return 1;
         if (!b.updatedTime) return -1;
         return new Date(b.updatedTime) - new Date(a.updatedTime);
@@ -147,10 +160,23 @@ const NeoProjectTemplates = () => {
   };
 
   const isProjectActive = (projectId) =>
-    location.pathname === `/projects/${projectId}`;
+    location.pathname === `/NeoDocuments/${projectId}`;
 
   const isDocumentActive = (docId) =>
-    location.pathname === `/document/${docId}`;
+    location.pathname === `/NeoDocuments/${docId}`;
+
+  if (projectDataLoading) {
+    return <div className="flex justify-center items-center h-full">Loading project...</div>;
+  }
+  if (!projectData) {
+    return <div className="flex justify-center items-center h-full text-red-500">Project not found.</div>;
+  }
+  if (loading) {
+    return <div className="flex justify-center items-center h-full">Loading documents...</div>;
+  }
+  if (error) {
+    return <div className="flex justify-center items-center h-full text-red-500">{error}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,23 +187,20 @@ const NeoProjectTemplates = () => {
           {/* Templates Section */}
           <section className="w-full">
             <div className="flex flex-col space-y-6">
-              <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-bold text-foreground ">
-          {projectData && projectData.projectName ? projectData.projectName : 'Unnamed Project'}
-            </h2>
               {/* Action Button - Aligned to left edge */}
-            <button
+              <button
                 className="self-start bg-white text-green-600 font-medium py-3 px-6 rounded-lg shadow-md hover:bg-green-50 transition-colors duration-200 flex items-center gap-3 border border-green-200"
-              onClick={handleGenerateDocs}
-              disabled={documents?.length === 0}
-            >
+                onClick={handleGenerateDocs}
+                disabled={documents?.length === 0}
+              >
                 <FaMagic className="w-4 h-4" />
                 Generate Client Documents
-            </button>
-            </div>
+              </button>
 
               {/* Section Title - Aligned to left edge */}
-             
+              <h2 className="text-3xl font-bold text-foreground">
+                Templates for {projectData && projectData.projectName ? projectData.projectName : 'Unnamed Project'}
+              </h2>
               
               {/* Content Area - Full width, aligned to left edge */}
               <div className="w-full">
@@ -186,11 +209,11 @@ const NeoProjectTemplates = () => {
                     <div className="text-muted-foreground">Loading templates...</div>
                   </div>
                 ) : (
-              <TemplateCards
-                documents={documents}
-                handleDeleteTemplate={handleDeleteTemplate}
-                projectId={projectData?._id}
-              />
+                  <TemplateCards
+                    documents={documents}
+                    handleDeleteTemplate={handleDeleteTemplate}
+                    projectId={projectData?._id}
+                  />
                 )}
               </div>
             </div>
@@ -200,11 +223,26 @@ const NeoProjectTemplates = () => {
           <section className="w-full">
             <div className="flex flex-col space-y-6">
               {/* Section Title - Aligned to left edge */}
-             
+              <h2 className="text-3xl font-bold text-foreground">
+                Documents with Template Names
+              </h2>
               
               {/* Content Area - Full width, aligned to left edge */}
               <div className="w-full">
-               
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="text-muted-foreground">Loading documents...</div>
+                  </div>
+                ) : (
+                  <TemplateCards
+                    projectId={projectData?._id}
+                    documents={docTemplates}
+                    template={true}
+                    handleDeleteTemplate={handleDeleteDocument}
+                    handleDownload={handleDocumentDownload}
+                    className="border border-border p-4 rounded-lg shadow-sm bg-card"
+                  />
+                )}
               </div>
             </div>
           </section>
@@ -214,4 +252,4 @@ const NeoProjectTemplates = () => {
   );
 };
 
-export default NeoProjectTemplates;
+export default NeoProjectDocuments;

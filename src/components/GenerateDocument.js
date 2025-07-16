@@ -1,81 +1,65 @@
 import React, { useEffect, useState } from "react";
 import { GoProjectTemplate } from "react-icons/go";
 import { getTemplatesByProjectId } from "../services/templateApi";
-//import { getAllProjects } from '../services/projectApi';
+import { getAllProjects } from "../services/projectApi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
-import { ProjectContext } from "../context/ProjectContext";
 
+import { getAllTemplates } from "../services/templateApi";
 const GenerateDocument = ({ onClose, value, hasProject }) => {
   const navigate = useNavigate();
   const [projectId, setProjectId] = useState(value || "");
   const [templateId, setTemplateId] = useState("");
   const [templates, setTemplates] = useState([]);
-  //const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { projects } = useContext(ProjectContext);
-  /*
+
   useEffect(() => {
-    const fetchTemplatesAndProjects = async () => {
-      if (hasProject && projectId) {
-        try {
-          setProjectId(projectId);
-          setLoading(true);
-          const response = await getTemplatesByProjectId(projectId);
-          if (response) {
-            setTemplates(response);
-          }
-        } catch (error) {
-          console.error("Failed to fetch templates", error);
-          toast.error("Failed to fetch templates");
-        } finally {
-          setLoading(false);
-        }
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await getAllProjects();
+        setProjects(response || []);
+      } catch (error) {
+        console.error("Failed to fetch projects", error);
+        toast.error("Failed to fetch projects");
+      } finally {
+        setLoading(false);
       }
-      fetchProjects();
     };
+    fetchProjects();
+  }, []);
 
-    fetchTemplatesAndProjects();
-  }, [projectId, hasProject]);
-
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      const response = await getAllProjects();
-      if (response) {
-        setProjects(response);
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setLoading(true);
+        if (projectId) {
+          const response = await getTemplatesByProjectId(projectId);
+          setTemplates(response || []);
+        } else {
+          const response = await getAllTemplates();
+          setTemplates(response || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch templates", error);
+        toast.error("Failed to fetch templates");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch projects", error);
-      toast.error("Failed to fetch projects");
-    } finally {
-      setLoading(false);
-    }
-  };
-*/
+    };
+    fetchTemplates();
+  }, [projectId]);
+
   const handleTemplateChange = (e) => {
     setTemplateId(e.target.value);
   };
 
-  const handleProjectChange = async (e) => {
-    const selectedProjectId = e.target.value;
-    setProjectId(selectedProjectId);
-
-    try {
-      setLoading(true);
-      const response = await getTemplatesByProjectId(selectedProjectId);
-      if (response) {
-        setTemplates(response);
-      }
-    } catch (error) {
-      console.error("Failed to fetch templates", error);
-      toast.error("Failed to fetch templates");
-    } finally {
-      setLoading(false);
-    }
+  const handleProjectChange = (e) => {
+    setProjectId(e.target.value);
+    setTemplateId(""); // Reset template selection when project changes
   };
 
   const handleSubmit = (e) => {

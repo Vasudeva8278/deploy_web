@@ -80,11 +80,10 @@ const ProfileHeader = ({ onSearch }) => {
   }, []);
 
   return (
-    <div className={`flex justify-between items-center fixed top-0 left-20 right-0 z-30 bg-white h-[60px] px-6 ${
-      isMobile ? 'ml-1' : 'ml-44'
-    }`}>
+    <div className="flex justify-between items-center fixed top-0 left-20 z-30 bg-white h-[60px] px-6" style={{ width: "calc(100vw - 80px)" }}>
       {/* Search Bar */}
-      <div className="relative max-w-lg flex-1 mt-2">
+      <span className="text-2xl font-bold">NEO</span>
+      <div className="relative max-w-3xl flex-1 mt-2">
         <input
           type="text"
           placeholder="Search by name or character"

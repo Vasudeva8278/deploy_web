@@ -15,19 +15,16 @@ export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
 
   useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await getAllProjects();
+        setProjects(response.projects || []);
+      } catch (error) {
+        console.log("Failed to fetch projects", error);
+      }
+    };
     fetchProjects();
   }, []);
-
-  const fetchProjects = async () => {
-    try {
-      const response = await getAllProjects();
-      console.log(response);
-      const data = response;
-      setProjects(data);
-    } catch (error) {
-      console.log("Failed to fetch projects", error);
-    }
-  };
 
   const addProject = async (newProject) => {
     try {
