@@ -27,8 +27,19 @@ const DocumentSideBar = () => {
   const [selectedProjectId, setSelectedProjectId] = useState("all");
 
   // Function to check if a project is active based on current route
-  const isProjectActive = (projectId) => {
-    return location.pathname.includes(`/projects/${projectId}`) || activeProjectId === projectId;
+  const isProjectActive = (projectId) => selectedProjectId === projectId;
+
+  // Helper to determine if a project or 'All' is active
+  const isActiveProject = (projectId) => {
+    if (projectId === 'all') {
+      return location.pathname === '/NeoDocements';
+    }
+    return location.pathname === `/NeoDocements/${projectId}`;
+  };
+
+  const isNeoTemplatesActive = () => {
+    const hash = location.hash || '';
+    return hash.startsWith('#/projects');
   };
 
   // Function to get role display name
@@ -74,19 +85,16 @@ const DocumentSideBar = () => {
       try {
         setLoading(true);
         const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
-        
         const projectDocsPromises = projects.map(async (project) => {
           try {
             const response = await axios.get(
               `${API_URL}/api/projectDocs/${project._id}/documents/documents-with-template-names`
             );
-            
             const documents = (response.data || []).map((doc) => ({
               ...doc,
               projectId: project._id,
               projectName: project.projectName
             }));
-
             return {
               projectId: project._id,
               projectName: project.projectName,
@@ -103,16 +111,10 @@ const DocumentSideBar = () => {
             };
           }
         });
-
         const results = await Promise.all(projectDocsPromises);
-        
-        // Store all projects (including those without documents)
         setProjectDocuments(results);
-        
-        // Store projects with documents for the document count display
         const projectsWithDocs = results.filter(project => project.documents.length > 0);
         setProjectDocuments(projectsWithDocs);
-        
         setError(null);
       } catch (err) {
         console.error('Error fetching project documents:', err);
@@ -122,8 +124,6 @@ const DocumentSideBar = () => {
         setLoading(false);
       }
     };
-
-    // Only fetch documents for non-restricted users
     if (projects && !isRestrictedUser) {
       fetchAllProjectDocuments();
     }
@@ -145,11 +145,10 @@ const DocumentSideBar = () => {
   }, []);
 
   const toggleProject = (projectId, event) => {
-    // Stop propagation to prevent project navigation when clicking the expand arrow
     event.stopPropagation();
-    setProjectDocuments(prev => 
-      prev.map(project => 
-        project.projectId === projectId 
+    setProjectDocuments(prev =>
+      prev.map(project =>
+        project.projectId === projectId
           ? { ...project, expanded: !project.expanded }
           : project
       )
@@ -157,9 +156,8 @@ const DocumentSideBar = () => {
   };
 
   const handleProjectClick = (projectId, projectData) => {
-    // Navigate to the project page with project data in state
-    navigate(`/projects/${projectId}`, { 
-      state: { 
+    navigate(`/NeoDocements/${projectId}`, {
+      state: {
         data: {
           _id: projectId,
           projectName: projectData.projectName
@@ -169,37 +167,22 @@ const DocumentSideBar = () => {
   };
 
   const handleDocumentClick = (documentId) => {
-    // Navigate to document view page
-    navigate(`/document/${documentId}`);
-  };
-
-  const handleCreateProject = () => {
-    // Navigate to create project page
-    navigate('/projects');
+    navigate(`/NeoDocements/${documentId}`);
   };
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
 
-  // Calculate total documents across all projects
   const totalDocuments = projectDocuments.reduce((sum, project) => sum + project.documents.length, 0);
 
-  // If user is restricted, show only role and authorization message
   if (isRestrictedUser) {
     return (
       <div className={`fixed top-0 left-20 z-20 h-screen bg-white border-r border-gray-200 flex flex-col overflow-hidden transition-all duration-300 ${
         isCollapsed ? 'w-12' : 'w-40'
       }`}>
         {/* Header */}
-        <div className="p-2 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center mb-2">
-            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-1">
-              <span className="text-white font-bold text-xs">N</span>
-            </div>
-          </div>
-        </div>
-
+        <div className="p-2 border-b border-gray-200 flex-shrink-0"></div>
         {/* Role and Authorization Message */}
         <div className="flex-1 overflow-y-auto p-2 flex flex-col">
           <div className="text-center py-4">
@@ -210,7 +193,6 @@ const DocumentSideBar = () => {
                 </span>
               </div>
             </div>
-            
             {!isCollapsed && (
               <>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
@@ -218,7 +200,6 @@ const DocumentSideBar = () => {
                     You are not authorized to view projects. Please contact your administrator for access.
                   </p>
                 </div>
-                
                 <div className="text-xs text-gray-500">
                   Role: {getRoleDisplayName(user?.role || "")}
                 </div>
@@ -226,7 +207,6 @@ const DocumentSideBar = () => {
             )}
           </div>
         </div>
-
         {/* Footer */}
         <div className="border-t border-gray-200 p-2 flex-shrink-0">
           <div className="flex items-center px-1 py-1.5 hover:bg-gray-100 rounded cursor-pointer transition-colors duration-200">
@@ -238,7 +218,6 @@ const DocumentSideBar = () => {
     );
   }
 
-  // Original logic for non-restricted users
   let filteredProjects = projectDocuments;
   if (filteredProjects.length === 0) return null;
 
@@ -247,33 +226,12 @@ const DocumentSideBar = () => {
       isCollapsed ? 'w-12' : 'w-40'
     }`}>
       {/* Toggle Button */}
-      <button
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-4 w-6 h-6 bg-white border border-gray-300 rounded-3xl flex items-center justify-center hover:bg-gray-50 transition-colors duration-200 z-30"
-        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="w-3 h-3 text-gray-600" />
-        ) : (
-          <ChevronLeft className="w-3 h-3 text-gray-600" />
-        )}
-      </button>
-
-      {/* Header */}
-      <div className="p-2 border-b border-gray-200 flex-shrink-0">
-        <div className="flex items-center mb-2">
-          <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-1">
-            <span className="text-white font-bold text-xs">N</span>
-          </div>
-          {!isCollapsed && <h1 className="text-xs font-bold text-gray-800">NEO</h1>}
-        </div>
-      </div>
-
+     
       {/* Projects and Documents - Main content area that can grow */}
       <div className="flex-1 overflow-y-auto p-2 flex flex-col">
         {!isCollapsed && (
           <h3 className="text-xs font-semibold text-gray-800 mb-2 flex-shrink-0">
-            Projects 
+            Projects
           </h3>
         )}
         <hr />
@@ -282,11 +240,12 @@ const DocumentSideBar = () => {
           {/* All Button */}
           <div
             className={`flex items-center px-1 py-1.5 rounded cursor-pointer transition-colors duration-200 mb-1 ${
-              location.pathname === '/NeoDocements'
-                ? 'bg-blue-100 font-bold text-blue-700'
-                : 'hover:bg-gray-100 text-gray-800'
+              isActiveProject('all') ? "bg-blue-100 font-bold text-blue-700" : "hover:bg-gray-100 text-gray-800"
             }`}
-            onClick={() => navigate('/NeoDocements')}
+            onClick={() => {
+              setSelectedProjectId("all");
+              navigate('/NeoDocements');
+            }}
             title="Show all documents"
           >
             <span className="text-xs font-medium flex-1 truncate">All</span>
@@ -305,11 +264,14 @@ const DocumentSideBar = () => {
                 {/* Project Header with Active State */}
                 <div
                   className={`flex items-center px-1 py-1.5 rounded cursor-pointer transition-colors duration-200 ${
-                    isProjectActive(project.projectId) 
+                    isActiveProject(project.projectId)
                       ? 'bg-blue-100 font-bold text-blue-700' 
                       : 'hover:bg-gray-100 text-gray-800'
                   }`}
-                  onClick={() => handleProjectClick(project.projectId, project)}
+                  onClick={() => {
+                    setSelectedProjectId(project.projectId);
+                    handleProjectClick(project.projectId, project);
+                  }}
                   title={`Open ${project.projectName} project`}
                 >
                   {!isCollapsed && (
@@ -323,7 +285,6 @@ const DocumentSideBar = () => {
                     </>
                   )}
                 </div>
-                
                 {/* Project Documents */}
                 {!isCollapsed && project.expanded && project.documents.length > 0 && (
                   <div className="ml-3 space-y-1">
@@ -342,7 +303,6 @@ const DocumentSideBar = () => {
                     ))}
                   </div>
                 )}
-                
                 {/* Show "No documents" message for projects without documents when expanded */}
                 {!isCollapsed && project.expanded && project.documents.length === 0 && (
                   <div className="ml-3 text-xs text-gray-400 italic px-1 py-1">
@@ -354,7 +314,6 @@ const DocumentSideBar = () => {
           )}
         </div>
         <hr />
-       
       </div>
       <hr />
     </div>

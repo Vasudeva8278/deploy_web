@@ -69,7 +69,7 @@ const Projects = () => {
           <MdAssignmentAdd className="inline" /> Add Project
         </button>
         </div>
-        <div className="flex justify-between items-center mb-4 ml-8">
+        <div className="flex justify-between items-center mb-4 ml-0">
           {loading && <div>Loading...</div>}
           <ProjectCards projects={projects} onEdit={handleEdit} />
         </div>

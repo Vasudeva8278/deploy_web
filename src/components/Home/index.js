@@ -14,7 +14,7 @@ import NeoDocements from "../NeoDocements";
 import ProfileHeader from "../profileheader";
 import ListofDocuments from "../Documents/ListofDocument";
 import Projects from "../../pages/Projects";
-import NeoProjectTemplates from "../NeoProjectTemplates";
+import NeoProTemplates from "../NeoProTemplates.jsx";
 import ViewTemplatesHighlights from "../Template/ViewTemplatesHighlights";
 import Clients from "../../pages/Clients";
 import ViewClient from "../../pages/ViewClient";
@@ -23,7 +23,7 @@ import UserManage from "../../pages/UserManage";
 import RoleFeatureManagement from "../RoleFeatureManagement";  
 import NeoTemplates from "../NeoTemplate";
 import DocumentSideBar from "../DocumentSideBar.js";
-import NeoProjectDocuments from "../NeoProductsDocuements.jsx";
+import NeoProjectTemplates from "../NeoProjectTemplates.jsx";
 const Home = () => {
   const [isNavigationVisible, setIsNavigationVisible] = useState(true);
   const [roleFeatures, setRoleFeatures] = useState([]);
@@ -161,11 +161,11 @@ const Home = () => {
               <Route path='/viewclient' element={<ViewClient />} />
             )}
             {roleFeatures.includes('projects') && (
-              <Route path='/projects/:id' element={<NeoProjectTemplates />} />
+              <Route path='/NeoTemplates/:id' element={<NeoProTemplates />} />
             )}
-
-           {roleFeatures.includes('documents') && (
-              <Route path='/NeoDocements/Documents/:id' element={<NeoProjectTemplates />} />
+         
+         {roleFeatures.includes('projects') && (
+              <Route path='/NeoDocements/:id' element={<NeoProjectTemplates />} />
             )}
 
             {roleFeatures.includes('Users') && (

@@ -7,7 +7,8 @@ import * as docx from 'docx-preview';
 import { getDocumentsWithTemplateNames, deleteDocument1, downloadDocument1 } from '../../services/documentApi';
 import { getAllTemplates, deleteTemplateById, createNeoTemplate } from '../../services/templateApi';
 import TemplateCards from '../Template/TemplateCards';
-
+import Buttonspage from '../Buttons';
+import ProjectCards from '../Project/ProjectCards';
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
  
@@ -43,7 +44,7 @@ const Dashboard = () => {
   const contentRef = useRef(null);
   const [conversionStatus, setConversionStatus] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState('templates');
+  const [activeTab, setActiveTab] = useState('projects');
 
   const handleSelectDocument = (docId) => {
     navigate(`/document/${docId}`);
@@ -275,59 +276,38 @@ const Dashboard = () => {
   return (
     <div>
       <SearchHeader />
-      <div className="flex space-x-4 mb-6 ml-6 mt-4">
-        <button
-          className={`px-4 py-2 rounded-t-lg font-semibold focus:outline-none transition-colors duration-200 ${activeTab === 'projects' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-          onClick={() => setActiveTab('projects')}
-        >
-          Projects
-        </button>
-        <button
-          className={`px-4 py-2 rounded-t-lg font-semibold focus:outline-none transition-colors duration-200 ${activeTab === 'templates' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-          onClick={() => setActiveTab('templates')}
-        >
-          Templates
-        </button>
-        <button
-          className={`px-4 py-2 rounded-t-lg font-semibold focus:outline-none transition-colors duration-200 ${activeTab === 'documents' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-          onClick={() => setActiveTab('documents')}
-        >
-          Documents
-        </button>
+      
+    <div className='md:flex justify-between'>
+      
+    <div className="rounded-lg p-0 w-full max-w-4xl 2xl:max-w-6xl mx-auto mt-8 flex justify-start items-start">
+  <div className="flex justify-center border-b ">
+    {['Projects', 'Templates', 'Documents'].map(tab => (
+      <button
+        key={tab}
+        className={`px-8 py-3 font-semibold text-base focus:outline-none transition 
+          ${activeTab === tab.toLowerCase()
+            ? 'border-b-2 border-blue-600 text-blue-600'
+            : 'border-b-2 border-transparent text-gray-600 hover:text-blue-600'}
+        `}
+        onClick={() => setActiveTab(tab.toLowerCase())}
+      >
+        {tab}
+      </button>
+    ))}
+  </div>
+  {/* Tab content below */}
+</div>
+      <div >
+        <Buttonspage />
       </div>
+</div>
       {activeTab === 'projects' && (
-        <div className='py-4 ml-6'>
+        <div className='py-4 ml-0'>
 
           {loading && <div>Loading...</div>}
           {error && <div style={{ color: 'red' }}>{error}</div>}
-          <div className="w-full ml-6 overflow-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {projects.map((docObj) => (
-                <div key={docObj._id} className="bg-white border border-gray-200 rounded-2xl shadow flex flex-col justify-between w-full h-[260px] p-4 relative transition hover:shadow-lg">
-                  {docObj.thumbnail && (
-                    <img
-                      src={
-                        docObj.thumbnail
-                          ? (docObj.thumbnail.startsWith('data:image') || docObj.thumbnail.startsWith('http'))
-                            ? docObj.thumbnail
-                            : `data:image/png;base64,${docObj.thumbnail}`
-                          : '/placeholder.png'
-                      }
-                      alt={docObj.fileName}
-                      className="object-contain w-28 h-28 mb-4 rounded mx-auto"
-                      style={{ maxWidth: '112px', maxHeight: '112px' }}
-                      onError={e => { e.target.onerror = null; e.target.src = '/placeholder.png'; }}
-                    />
-                  )}
-                  <div className="flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="text-xs font-semibold truncate text-gray-800 mb-1">{docObj.fileName}</div>
-                      <div className="text-xs text-gray-500 mb-2">Type: {docObj.type}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="w-full ml-2 overflow-auto ">
+            <ProjectCards projects={projects} onEdit={() => {}} />
           </div>
         </div>
       )}
@@ -359,7 +339,7 @@ const Dashboard = () => {
                   handleDownload={handleDocumentDownload}
                   className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
                 />
-               <div className="text-gray-400">Documents content goes here.</div>
+
             </div>
           </div>
         </div>

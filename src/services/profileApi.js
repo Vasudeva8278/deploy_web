@@ -52,3 +52,9 @@ export const changePassword = async (currentPassword, newPassword) => {
     throw error;
   }
 };
+
+export const getProjectById = async (projectId) => {
+  const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
+  const response = await axios.get(`${API_URL}/api/projects/${projectId}`);
+  return response.data;
+};

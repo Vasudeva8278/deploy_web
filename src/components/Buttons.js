@@ -9,7 +9,7 @@ import { AuthContext } from "../context/AuthContext";
 
 const EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
 
-const SearchHeader = ({ projectId, hasProject = false }) => {
+const Buttons = ({ projectId, hasProject = false }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [displayPage, setDisplayPage] = useState("");
   const [selectedProject, setSelectedProject] = useState(projectId || '');
@@ -34,17 +34,28 @@ const SearchHeader = ({ projectId, hasProject = false }) => {
 
   return (
     <div className="w-full p-2 sm:p-6">
-      <div className="mb-4 sm:mb-6 relative">
-      <div
-          className="bg-cover bg-center  overflow-hidden   w-full  mx-auto"
-          // max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl 2xl:max-w-6xl 3xl:max-w-7xl h-[250px] rounded-2xl border-2 border-white-200
-          // style={{ backgroundImage: `url(${bannerImage})`, height: '250px' }}
-        >
-        <img src={bannerImage} alt='banner' />
-          
-        </div>
-      </div>
+      
 
+    
+      <div className="flex flex-col sm:flex-row items-center gap-2 justify-end">
+        {!(user && user.role === EXECUTIVE_ROLE_ID) && (
+          <button
+            onClick={() => openModal('designTemplates')}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
+          >
+            <FileText className="w-5 h-5" />
+            Design Template
+          </button>
+        )}
+        <button
+          onClick={() => openModal('generateDocs')}
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
+        >
+          <Sparkles className="w-5 h-5" />
+          Generate Documents
+        </button>
+      </div>
+    
       {/* Modal using the existing NeoModal for consistency */}
       <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <React.Suspense fallback={<div className="p-4">Loading...</div>}>
@@ -75,4 +86,4 @@ const SearchHeader = ({ projectId, hasProject = false }) => {
   );
 };
 
-export default SearchHeader;
+export default Buttons;

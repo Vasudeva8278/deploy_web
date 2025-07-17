@@ -142,7 +142,7 @@ const NeoProject = ({ mode = "view", project = {}, onSave, handleClose }) => {
                   htmlFor="projectName"
                   className="block text-gray-700 font-normal mb-1"
                 >
-                  Project Name:
+                  Name:
                 </label>
                 <input
                   type="text"
@@ -203,22 +203,7 @@ const NeoProject = ({ mode = "view", project = {}, onSave, handleClose }) => {
                   Property:
                 </label>
                 <div id="propertyTags" className="flex flex-wrap">
-                  {propertyTags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="tag rounded-md px-1 border mb-1 text-gray-500 text-xs"
-                    >
-                      {tag}
-                      {mode !== "view" && (
-                        <span
-                          className="tag-remove pl-2 cursor-pointer text-zinc-950 text-sm"
-                          onClick={() => removeTag("property", index)}
-                        >
-                          x
-                        </span>
-                      )}
-                    </span>
-                  ))}
+                  
                 </div>
                 {mode !== "view" && (
                   <div className="flex items-center">
@@ -243,7 +228,7 @@ const NeoProject = ({ mode = "view", project = {}, onSave, handleClose }) => {
               {(mode === "edit" || mode === "add") && (
                 <div className="mb-4">
                   <label className="block text-gray-700 font-normal mb-2">
-                    Project Image:
+                    Logo:
                   </label>
                   <input
                     type="file"

@@ -60,7 +60,12 @@ const ViewClient = () => {
                     className="border border-gray-300 rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition-shadow"
                   >
                     <p className="text-gray-600 text-sm mb-3 font-medium">
-                      {doc.templateId.fileName}
+                      {(() => {
+                        const name = doc.templateId.fileName || '';
+                        if (name.length <= 2) return name;
+                        const half = Math.ceil(name.length / 2);
+                        return name.slice(0, half) + '...';
+                      })()}
                     </p>
                     <button
                       className="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition-colors flex items-center justify-center"

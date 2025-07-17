@@ -73,8 +73,31 @@ const Navigation = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isActive = (path) => location.pathname === path;
-  const isProjectActive = (projectId) => location.pathname === `/projects/${projectId}`;
+  const isActive = (path) => location.pathname.startsWith(path);
+
+  const isProjectActive = (projectId) => {
+    if (projectId) {
+      return location.pathname.startsWith(`/NeoTemplates/${projectId}`);
+    }
+    return location.pathname.startsWith('/NeoTemplates');
+  };
+
+  const isDocumentActive = (projectId) => {
+    if (projectId) {
+      return location.pathname.startsWith(`/NeoDocements/${projectId}`);
+    }
+    return location.pathname.startsWith('/NeoDocements');
+  };
+
+
+
+  
+  
+
+  const isNeoTemplatesActive = () => {
+    const hash = location.hash || '';
+    return hash.startsWith('#/NeoTemplates');
+  };
 
   const handleProjects = () => {
     navigate(`/projects`);
@@ -107,7 +130,7 @@ const Navigation = () => {
   const handleProjectsTemplates = (project) => {
     navigate(`/projects/${project._id}`, { state: { data: project } });
   };
-
+  
   const handleCancel = () => {
     setIsModalOpen(false);
   };
@@ -163,10 +186,12 @@ const Navigation = () => {
   };
 
   // Helper function to render navigation items
-  const NavItem = ({ to, onClick, icon: Icon, label, projectSpecific = false, projectId = null, featureKey }) => {
-    const active = projectSpecific
-      ? isProjectActive(projectId)
-      : isActive(to) || (to === "/projects" && location.pathname.startsWith("/projects/") && !projectId);
+  const NavItem = ({ to, onClick, icon: Icon, label, projectSpecific = false, projectId = null, featureKey, active }) => {
+    const isActiveNav = typeof active === 'boolean'
+      ? active
+      : (projectSpecific
+          ? isProjectActive(projectId)
+          : isActive(to) || (to === "/projects" && location.pathname.startsWith("/projects/") && !projectId));
     // Only render if featureKey is not set or is present in roleFeatures
     if (featureKey && (!roleFeatures || !roleFeatures.includes(featureKey))) return null;
 
@@ -177,14 +202,14 @@ const Navigation = () => {
           className={`
             flex flex-col items-center rounded-lg cursor-pointer w-full transition duration-200
             hover:bg-blue-100 
-            ${active ? "shadow-md shadow-blue-300 bg-blue-50" : ""}
+            ${isActiveNav ? "shadow-md shadow-blue-300 bg-blue-50" : ""}
             p-1 sm:p-2
           `}
           title={isMobile ? label : ''}
         >
-          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${!isMobile ? 'mb-1' : ''} ${active ? "text-blue-600" : "text-gray-700"}`} />
+          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${!isMobile ? 'mb-1' : ''} ${isActiveNav ? "text-blue-600" : "text-gray-700"}`} />
           {!isMobile && (
-            <span className={`text-xs font-semibold text-center ${active ? "text-blue-600" : "text-gray-700"}`}>
+            <span className={`text-xs font-semibold text-center ${isActiveNav ? "text-blue-600" : "text-gray-700"}`}>
               {label}
             </span>
           )}

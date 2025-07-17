@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { LuCreditCard } from "react-icons/lu";
 import { FaTable } from "react-icons/fa";
-
+import { FileText, Sparkles } from 'lucide-react';
 import {
   FaUpload,
   FaFileAlt,
@@ -30,9 +30,8 @@ import {
 import SearchHeader from "./SearchHeader";
 import ViewTemplatesHighlights from "./Template/ViewTemplatesHighlights";
 import NeoModal from "./NeoModal";
-import { getAllProjects } from "../services/projectApi";
 
-const NeoProjectDocuments = () => {
+const NeoProTemplates = () => {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [recentDocuments, setRecentDocuments] = useState([]);
@@ -45,37 +44,23 @@ const NeoProjectDocuments = () => {
   const [conversionStatus, setConversionStatus] = useState("");
   const [uploading, setUploading] = useState(false);
   const location = useLocation();
-  const { id: currentProjectId } = useParams();
-  const [projectData, setProjectData] = useState(location.state?.data || null);
+  const projectData = location.state?.data;
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [projectDataLoading, setProjectDataLoading] = useState(!location.state?.data);
-
-  useEffect(() => {
-    // If projectData is not present, fetch it using the projectId from the route
-    if (!projectData && currentProjectId) {
-      setProjectDataLoading(true);
-      getAllProjects()
-        .then((projects) => {
-          const found = (projects || []).find((p) => p._id === currentProjectId);
-          setProjectData(found || null);
-        })
-        .catch(() => setProjectData(null))
-        .finally(() => setProjectDataLoading(false));
-    }
-  }, [currentProjectId, projectData]);
+  const { id: currentProjectId } = useParams();
 
   useEffect(() => {
     if (projectData && projectData._id) {
-      fetchTemplates(projectData._id);
-      fetchDocuments(projectData._id);
+      fetchTemplates();
+      fetchDocuments();
     }
   }, [projectData]);
 
-  const fetchDocuments = async (projectId) => {
-    if (!projectId) return;
+  const fetchDocuments = async () => {
+    if (!projectData || !projectData._id) return;
     try {
-      const response = await getHomePageDocuments(projectId);
-      setDocTemplates(response);
+      const response = await getHomePageDocuments(projectData._id);
+      const data = response;
+      setDocTemplates(data);
     } catch (error) {
       setError("Failed to fetch documents");
       console.error("Failed to fetch documents", error);
@@ -84,12 +69,14 @@ const NeoProjectDocuments = () => {
     }
   };
 
-  const fetchTemplates = async (projectId) => {
-    if (!projectId) return;
+  const fetchTemplates = async () => {
+    if (!projectData || !projectData._id) return;
     try {
-      const response = await getHomePageTemplates(projectId);
-      setDocuments(response);
-      const sortedData = response.sort((a, b) => {
+      const response = await getHomePageTemplates(projectData._id);
+      const data = response;
+      console.log(data);
+      setDocuments(data);
+      const sortedData = data.sort((a, b) => {
         if (!a.updatedTime) return 1;
         if (!b.updatedTime) return -1;
         return new Date(b.updatedTime) - new Date(a.updatedTime);
@@ -160,47 +147,37 @@ const NeoProjectDocuments = () => {
   };
 
   const isProjectActive = (projectId) =>
-    location.pathname === `/NeoDocuments/${projectId}`;
+    location.pathname === `/projects/${projectId}`;
 
   const isDocumentActive = (docId) =>
-    location.pathname === `/NeoDocuments/${docId}`;
-
-  if (projectDataLoading) {
-    return <div className="flex justify-center items-center h-full">Loading project...</div>;
-  }
-  if (!projectData) {
-    return <div className="flex justify-center items-center h-full text-red-500">Project not found.</div>;
-  }
-  if (loading) {
-    return <div className="flex justify-center items-center h-full">Loading documents...</div>;
-  }
-  if (error) {
-    return <div className="flex justify-center items-center h-full text-red-500">{error}</div>;
-  }
+    location.pathname === `/document/${docId}`;
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-8xl mx-auto px-6 py-8">
         {/* Main Content Container with Consistent Vertical Alignment */}
         <div className="flex flex-col space-y-12">
           
           {/* Templates Section */}
           <section className="w-full">
             <div className="flex flex-col space-y-6">
+              <div className="flex justify-between items-center">
+            <h2 className="text-3xl font-bold text-foreground ml-4">
+          {projectData && projectData.projectName ? projectData.projectName : 'Unnamed Project'}
+            </h2>
               {/* Action Button - Aligned to left edge */}
-              <button
-                 className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
-                onClick={handleGenerateDocs}
-                disabled={documents?.length === 0}
-              >
-                <FaMagic className="w-4 h-4" />
-                Generate Client Documents
-              </button>
+            <button
+            className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
+              onClick={handleGenerateDocs}
+              disabled={documents?.length === 0}
+            >
+                <Sparkles className="w-4 h-4" />
+                Generate Documents
+            </button>
+            </div>
 
               {/* Section Title - Aligned to left edge */}
-              <h2 className="text-3xl font-bold text-foreground">
-                Templates for {projectData && projectData.projectName ? projectData.projectName : 'Unnamed Project'}
-              </h2>
+             
               
               {/* Content Area - Full width, aligned to left edge */}
               <div className="w-full">
@@ -209,11 +186,11 @@ const NeoProjectDocuments = () => {
                     <div className="text-muted-foreground">Loading templates...</div>
                   </div>
                 ) : (
-                  <TemplateCards
-                    documents={documents}
-                    handleDeleteTemplate={handleDeleteTemplate}
-                    projectId={projectData?._id}
-                  />
+              <TemplateCards
+                documents={documents}
+                handleDeleteTemplate={handleDeleteTemplate}
+                projectId={projectData?._id}
+              />
                 )}
               </div>
             </div>
@@ -223,26 +200,11 @@ const NeoProjectDocuments = () => {
           <section className="w-full">
             <div className="flex flex-col space-y-6">
               {/* Section Title - Aligned to left edge */}
-              <h2 className="text-3xl font-bold text-foreground">
-                Documents with Template Names
-              </h2>
+             
               
               {/* Content Area - Full width, aligned to left edge */}
               <div className="w-full">
-                {loading ? (
-                  <div className="flex justify-center py-12">
-                    <div className="text-muted-foreground">Loading documents...</div>
-                  </div>
-                ) : (
-                  <TemplateCards
-                    projectId={projectData?._id}
-                    documents={docTemplates}
-                    template={true}
-                    handleDeleteTemplate={handleDeleteDocument}
-                    handleDownload={handleDocumentDownload}
-                    className="border border-border p-4 rounded-lg shadow-sm bg-card"
-                  />
-                )}
+               
               </div>
             </div>
           </section>
@@ -252,4 +214,4 @@ const NeoProjectDocuments = () => {
   );
 };
 
-export default NeoProjectDocuments;
+export default NeoProTemplates;

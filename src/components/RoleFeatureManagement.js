@@ -64,7 +64,7 @@ const RoleFeatureManagement = () => {
   const isSuperAdmin = user && user.role === SUPERADMIN_ROLE_ID;
 
   return (
-    <div className="mt-12">
+    <div className="mt-4">
       <ToastContainer />
       <h2 className="text-xl font-bold mb-4">Role Features Management</h2>
       {roleLoading ? (

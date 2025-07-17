@@ -117,11 +117,13 @@ const Card = ({ docObj, documentId, name, thumbnail, content, handleDelete, hand
        
     >
     <div
+    className="rounded-t-2xl"
     style={{
       backgroundImage: `url(${leafyBg})`,
       backgroundRepeat: 'no-repeat',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
+      
       backgroundColor: 'rgba(255,255,255,0.95)',
     }}
     >
@@ -187,7 +189,7 @@ const Card = ({ docObj, documentId, name, thumbnail, content, handleDelete, hand
           style={{
               height: '120px',
               width: '100%',
-            backgroundColor: '#f5f6fa',
+           
               borderRadius: '12px',
             overflow: 'hidden',
             display: 'flex',
@@ -202,7 +204,7 @@ const Card = ({ docObj, documentId, name, thumbnail, content, handleDelete, hand
               <img src={thumbnailImg} className="object-contain h-full w-full" />
           )}
         </div>
-      </div>
+        </div>
       </div>
 
         {/* Card Bottom (Title & Project) */}
@@ -506,7 +508,7 @@ const TemplateCards = ({
   return (
         <div
           id="template-card-container"
-      className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4 sm:gap-6 lg:gap-8 p-2 sm:p-4 max-w-full mx-auto justify-items-center"
+          className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4 sm:gap-6 lg:gap-8 p-2 sm:p-4 max-w-full mx-auto justify-items-center"
         >
           {documents.map((doc) => (
             <Card

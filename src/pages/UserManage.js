@@ -163,16 +163,18 @@ const UserManage = () => {
     <div>
       
    
-    <div className="flex flex-wrap gap-4 mb-4 items-center">
-    <div>
-      <span className="font-semibold text-lg text-gray-800">User Management</span>
+    <div className="md:flex md:flex-wrap gap-4 md:mb-4 items-center">
+    <div >
+    <span className="text-2xl font-bold ml-4">
+            Users
+          </span>
     </div>
     <input
         type="text"
         placeholder="Search by name..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-64 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+        className="w-96 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 ml-4"
       />
    
    
@@ -181,7 +183,7 @@ const UserManage = () => {
 
       {console.log('users data before render:', users)}
       {loading && (
-        <div className="overflow-x-auto mt-4 border-2 border-gray-300 rounded-xl p-4">
+        <div className="overflow-x-auto mt-4 border-2 border-gray-300 rounded-xl p-6">
           <table className="equipment-table">
             <thead>
               <tr>
@@ -215,7 +217,7 @@ const UserManage = () => {
                 <th><div className='w-30 text-white'>profile</div></th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Projects</th>
+               
                 <th>Role</th>
                 <th>Actions</th>
         </tr>
@@ -243,8 +245,8 @@ const UserManage = () => {
                       </td>
                       <td>{u.name}</td>
                       <td>{u.email}</td>
-                      <td>
-                        {editRole[u._id] !== undefined ? (
+                      
+                        {/* {editRole[u._id] !== undefined ? (
                           <Select
                             isMulti
                             options={projectOptions}
@@ -269,8 +271,8 @@ const UserManage = () => {
                               : <span style={{ color: '#aaa' }}>Select projects</span>
                             }
                           </span>
-                        )}
-                </td>
+                        )} */}
+                
                       <td>
                   {editRole[u._id] !== undefined ? (
                     <select

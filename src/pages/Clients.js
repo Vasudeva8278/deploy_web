@@ -82,7 +82,7 @@ const Clients = () => {
         <div className="flex flex-col w-full">
           <div className="w-full max-w-8xl w-full p-2 ">
           <div className="md:flex justify-between items-center" >
-        <h2 className="text-xl font-bold md:mb-4 text-left md:ml-9">Clinets</h2>
+        <h2 className="text-xl font-bold md:mb-4 text-left md:ml-6">Clients</h2>
         <button
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md"
@@ -93,8 +93,8 @@ const Clients = () => {
         </div>
 
           
-            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-1 sm:mt-5 2xl:mr-24">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 sm:mt-0 ">
+            <div className="w-full max-w-8xl mx-auto px-4 sm:px-6 lg:px-1 sm:mt-5 2xl:mr-20">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 sm:mt-0 ml-6">
                 {filteredClients.map(client => (
                   <motion.div
                     key={client._id}

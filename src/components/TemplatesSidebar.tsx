@@ -48,7 +48,15 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
 
   // Function to check if a project is active based on current route
   const isProjectActive = (projectId: string) => {
-    return location.pathname.includes(`/projects/${projectId}`) || activeProjectId === projectId;
+    return location.pathname.includes(`/NeoTemplates`) || activeProjectId === projectId;
+  };
+
+  // Helper to determine if a project or 'All' is active
+  const isActiveProject = (projectId: string) => {
+    if (projectId === 'all') {
+      return location.pathname === '/NeoTemplates';
+    }
+    return location.pathname === `/NeoTemplates/${projectId}`;
   };
 
   // Function to get role display name
@@ -178,7 +186,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
 
   const handleProjectClick = (projectId: string, projectData: any) => {
     // Navigate to the project page with project data in state
-    navigate(`/projects/${projectId}`, { 
+    navigate(`/NeoTemplates/${projectId}`, { 
       state: { 
         data: {
           _id: projectId,
@@ -190,13 +198,10 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
 
   const handleDocumentClick = (documentId: string) => {
     // Navigate to document view page
-    navigate(`/document/${documentId}`);
+    navigate(`/NeoTemplates/${documentId}`);
   };
 
-  const handleCreateProject = () => {
-    // Navigate to create project page
-    navigate('/projects');
-  };
+ 
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
@@ -213,11 +218,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
       }`}>
         {/* Header */}
         <div className="p-2 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center mb-2">
-            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-1">
-              <span className="text-white font-bold text-xs">N</span>
-            </div>
-          </div>
+          
         </div>
 
         {/* Role and Authorization Message */}
@@ -267,27 +268,10 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
       isCollapsed ? 'w-12' : 'w-40'
     }`}>
       {/* Toggle Button */}
-      <button
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-4 w-6 h-6 bg-white border border-gray-300 rounded-3xl flex items-center justify-center hover:bg-gray-50 transition-colors duration-200 z-30"
-        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="w-3 h-3 text-gray-600" />
-        ) : (
-          <ChevronLeft className="w-3 h-3 text-gray-600" />
-        )}
-      </button>
+      
 
       {/* Header */}
-      <div className="p-2 border-b border-gray-200 flex-shrink-0">
-        <div className="flex items-center mb-2">
-          <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center mr-1">
-            <span className="text-white font-bold text-xs">N</span>
-          </div>
-          {!isCollapsed && <h1 className="text-xs font-bold text-gray-800">NEO</h1>}
-        </div>
-      </div>
+      
 
       {/* Projects and Documents - Main content area that can grow */}
       <div className="flex-1 overflow-y-auto p-2 flex flex-col">
@@ -302,11 +286,12 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
           {/* All Button */}
           <div
             className={`flex items-center px-1 py-1.5 rounded cursor-pointer transition-colors duration-200 mb-1 ${
-              selectedProjectId === "all"
-                ? "bg-blue-100 font-bold text-blue-700"
-                : "hover:bg-gray-100 text-gray-800"
+              isActiveProject('all') ? "bg-blue-100 font-bold text-blue-700" : "hover:bg-gray-100 text-gray-800"
             }`}
-            onClick={() => setSelectedProjectId("all")}
+            onClick={() => {
+              setSelectedProjectId("all");
+              navigate('/NeoTemplates');
+            }}
             title="Show all documents"
           >
             <span className="text-xs font-medium flex-1 truncate">All</span>
@@ -325,7 +310,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
                 {/* Project Header with Active State */}
                 <div
                   className={`flex items-center px-1 py-1.5 rounded cursor-pointer transition-colors duration-200 ${
-                    isProjectActive(project.projectId) 
+                    isActiveProject(project.projectId)
                       ? 'bg-blue-100 font-bold text-blue-700' 
                       : 'hover:bg-gray-100 text-gray-800'
                   }`}

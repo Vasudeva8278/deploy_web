@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaBold,
   FaItalic,
@@ -9,9 +10,11 @@ import {
   FaUndo,
   FaRedo,
   FaPalette,
+  FaArrowLeft,
 } from "react-icons/fa";
 
 const StyleComponents = ({ content, handleSave, handleCancel }) => {
+  const navigate = useNavigate();
   const [activeFormats, setActiveFormats] = useState({
     bold: false,
     italic: false,
@@ -85,138 +88,8 @@ const StyleComponents = ({ content, handleSave, handleCancel }) => {
   };
 
   return (
-    /*  <div>
-      <h2 className="text-lg font-semibold mb-4">Options</h2>
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => format("bold")}
-          className={`p-2 rounded hover:bg-gray-200 ${
-            activeFormats.bold ? "bg-gray-300" : ""
-          }`}
-        >
-          <FaBold />
-        </button>
-        <button
-          onClick={() => format("italic")}
-          className={`p-2 rounded hover:bg-gray-200 ${
-            activeFormats.italic ? "bg-gray-300" : ""
-          }`}
-        >
-          <FaItalic />
-        </button>
-        <button
-          onClick={() => format("underline")}
-          className={`p-2 rounded hover:bg-gray-200 ${
-            activeFormats.underline ? "bg-gray-300" : ""
-          }`}
-        >
-          <FaUnderline />
-        </button>
-        <button
-          onClick={() => format("insertUnorderedList")}
-          className={`p-2 rounded hover:bg-gray-200 ${
-            activeFormats.unorderedList ? "bg-gray-300" : ""
-          }`}
-        >
-          <FaListUl />
-        </button>
-        <button
-          onClick={() => format("insertOrderedList")}
-          className={`p-2 rounded hover:bg-gray-200 ${
-            activeFormats.orderedList ? "bg-gray-300" : ""
-          }`}
-        >
-          <FaListOl />
-        </button>
-        <button
-          onClick={createLink}
-          className={`p-2 rounded hover:bg-gray-200 ${
-            activeFormats.link ? "bg-gray-300" : ""
-          }`}
-        >
-          <FaLink />
-        </button>
-      </div>
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => format("undo")}
-          className="p-2 rounded hover:bg-gray-200"
-        >
-          <FaUndo />
-        </button>
-        <button
-          onClick={() => format("redo")}
-          className="p-2 rounded hover:bg-gray-200"
-        >
-          <FaRedo />
-        </button>
-        <div className="flex items-center">
-          <input
-            id="color-picker"
-            type="color"
-            value={fontColor}
-            onChange={handleColorChange}
-            className="position-absolute border-none rounded m-1 visible w-5"
-          />
-        </div>
-      </div>
-      <div className="mb-4">
-        <label htmlFor="font-size-picker" className="block mb-1">
-          Font Size
-        </label>
-        <select
-          id="font-size-picker"
-          value={fontSize}
-          onChange={handleFontSizeChange}
-          className="w-full p-2 border rounded"
-        >
-          {Object.values(sizeMap).map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="mb-4">
-        <label htmlFor="font-family-picker" className="block mb-1">
-          Font Style
-        </label>
-        <select
-          id="font-family-picker"
-          value={fontFamily}
-          onChange={handleFontFamilyChange}
-          className="w-full p-2 border rounded"
-        >
-          {[
-            "Arial",
-            "Times New Roman",
-            "Verdana",
-            "Courier New",
-            "Georgia",
-            "Palatino Linotype",
-            "Tahoma",
-            "Trebuchet MS",
-            "Impact",
-          ].map((family) => (
-            <option key={family} value={family}>
-              {family}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex justify-between">
-        <button
-          onClick={handleSave}
-          className="ml-5 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Save Changes
-        </button>
-        <button className="mr-5 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-          Cancel Changes
-        </button>
-      </div>
-    </div> */
-    <div className="p-4 border rounded bg-gray-100">
+    <div className="p-4 border rounded w-full">
+    
       <h2 className="text-lg font-semibold mb-4">Options Toolbar</h2>
       <div className="flex items-center gap-4 flex-wrap mb-4 bg-white p-2 rounded shadow">
         {/* Formatting Buttons */}
@@ -340,19 +213,30 @@ const StyleComponents = ({ content, handleSave, handleCancel }) => {
         </select>
       </div>
       <div className="flex justify-between mt-4">
+      <button
+        className="flex items-center gap-2  px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded shadow"
+        onClick={() => navigate('/NeoTemplates')}
+        title="Back to Templates"
+      >
+        <FaArrowLeft className="mr-1" />
+        Back
+      </button>
         {/* Save and Cancel Buttons */}
-        <button
-          onClick={handleSave}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Save Changes
-        </button>
+        <div className="flex items-center gap-2">
+        
         <button
           className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
           onClick={handleCancel}
         >
-          Cancel Changes
+          Undo Changes
         </button>
+        <button
+          onClick={() => { handleSave(); navigate('/NeoTemplates'); }}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Save Changes
+        </button>
+        </div>
       </div>
     </div>
   );

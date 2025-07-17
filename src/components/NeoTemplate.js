@@ -343,33 +343,36 @@ const NeoTemplates= () => {
       
         <div className='flex flex-col p-4 space-y-8'>
           <div className='w-full max-w-screen-2xl mx-auto'>
-            <div className="md:flex justify-between items-center w-max-8xl">
-              <h1>Templates</h1>
-                {/* Card/Grid View Tabs (parent controlled) */}
-                <div className="flex space-x-2 mb-4 ml-4">
-                <button
-                  className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                  onClick={() => setViewMode('card')}
-                >
-                  <LuCreditCard className="inline-block w-5 h-5" />
-                </button>
-                <button
-                  className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                  onClick={() => setViewMode('grid')}
-                >
-                  <FaTable className="inline-block w-5 h-5" />
-                </button>
-              </div>
-           
-                <button
+          <div className="md:flex justify-between items-center">
+          <span className="text-2xl font-bold ml-4">
+            Templates
+          </span>
+        <div className="flex justify-between items-center gap-4">
+          <div>
+          <button
+            className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setViewMode('card')}
+          >
+            <LuCreditCard className="inline-block w-5 h-5" />
+          </button>
+          <button
+            className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setViewMode('grid')}
+          >
+            <FaTable className="inline-block w-5 h-5" />
+          </button>
+          </div>
+      
+          <button
                   onClick={() => openModal('designTemplates')}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors shadow-md text-sm"
                 >
                   <FaFileAlt className="w-5 h-5" />
                   Design Template
                 </button>
-          
-            </div>
+          </div>
+        </div>
+           
             <br />
             <div className='flex'>
               {loading && <div>Loading...</div>}
