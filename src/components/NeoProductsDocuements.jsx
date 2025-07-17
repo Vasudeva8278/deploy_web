@@ -189,7 +189,7 @@ const NeoProjectDocuments = () => {
             <div className="flex flex-col space-y-6">
               {/* Action Button - Aligned to left edge */}
               <button
-                className="self-start bg-white text-green-600 font-medium py-3 px-6 rounded-lg shadow-md hover:bg-green-50 transition-colors duration-200 flex items-center gap-3 border border-green-200"
+                 className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
                 onClick={handleGenerateDocs}
                 disabled={documents?.length === 0}
               >

@@ -33,12 +33,12 @@ const SearchHeader = ({ projectId, hasProject = false }) => {
   }, [projectId]);
 
   return (
-    <div className="w-full max-w-8xl mx-auto p-2 sm:p-6">
+    <div className="w-full p-2 sm:p-6">
       <div className="mb-4 sm:mb-6 relative">
         <div 
-          className="bg-cover bg-center rounded-2xl overflow-hidden border-2 border-white-200 h-[250px] w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl 2xl:max-w-6xl 3xl:max-w-7xl mx-auto"
+          className="bg-cover bg-center rounded-2xl overflow-hidden border-2 border-white-200 h-[250px] w-full mx-auto"
           
-          style={{ backgroundImage: `url(${bannerImage})`, height: '250px' }}
+          style={{ backgroundImage: `url(${bannerImage})`, height: '250px'  }}
         >
           <div className="flex items-center justify-between p-2 sm:p-8 relative h-full bg-opacity-30">
             {/* Arrows for banner or additional content can go here */}
@@ -46,7 +46,7 @@ const SearchHeader = ({ projectId, hasProject = false }) => {
         </div>
       </div>
 
-      {/* Recent Files Section */}
+    
       <div className="flex flex-col sm:flex-row items-center gap-2 justify-end">
         {!(user && user.role === EXECUTIVE_ROLE_ID) && (
           <button

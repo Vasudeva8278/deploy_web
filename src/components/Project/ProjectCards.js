@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaFileAlt, FaEdit, FaDownload, FaTrash, FaEllipsisV } from 'react-icons/fa';
 import thumbnailImg from '../../Assets/thumbnail.png'
-
+import leafbg from '../../Assets/leafy-bg.png';
 const Card = ({ project, thumbnail, onEdit }) => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -38,8 +38,17 @@ const Card = ({ project, thumbnail, onEdit }) => {
   }, []);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col w-full relative overflow-hidden">
-      {/* Menu Button */}
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col w-full relative overflow-hidden"
+      
+    >
+     <div 
+     style={{
+      backgroundImage: `url(${leafbg})`,
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundColor: 'rgba(255,255,255,0.95)',
+    }}>
       <div className="flex justify-end p-2">
         <div ref={menuRef} className="relative z-15">
           <button
@@ -49,7 +58,6 @@ const Card = ({ project, thumbnail, onEdit }) => {
           >
             <FaEllipsisV className="text-sm" />
           </button>
-          
           {/* Dropdown Menu */}
           {menuOpen && (
             <div className="absolute right-0 mt-1  ml-4 w-39 bg-white rounded-md shadow-lg border border-gray-200 z-30 overflow-hidden">
@@ -108,12 +116,17 @@ const Card = ({ project, thumbnail, onEdit }) => {
           </div>
         </div>
       </div>
+      </div>
 
-      {/* Project Name */}
+      {/* Project Name and Folder */}
       <div className="px-4 pb-4">
         <h3 className="text-sm font-semibold text-gray-900 text-center truncate">
           {project.projectName}
         </h3>
+        <div className="flex items-center justify-center mt-1">
+          <svg className="w-4 h-4 text-blue-500 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+          <span className="text-xs text-gray-600 truncate">Testing Folder</span>
+        </div>
       </div>
     </div>
   );

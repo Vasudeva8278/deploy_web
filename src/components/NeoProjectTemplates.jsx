@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { LuCreditCard } from "react-icons/lu";
 import { FaTable } from "react-icons/fa";
-
+import { FileText, Sparkles } from 'lucide-react';
 import {
   FaUpload,
   FaFileAlt,
@@ -167,12 +167,12 @@ const NeoProjectTemplates = () => {
             </h2>
               {/* Action Button - Aligned to left edge */}
             <button
-                className="self-start bg-white text-green-600 font-medium py-3 px-6 rounded-lg shadow-md hover:bg-green-50 transition-colors duration-200 flex items-center gap-3 border border-green-200"
+            className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
               onClick={handleGenerateDocs}
               disabled={documents?.length === 0}
             >
-                <FaMagic className="w-4 h-4" />
-                Generate Client Documents
+                <Sparkles className="w-4 h-4" />
+                Generate Documents
             </button>
             </div>
 

@@ -114,13 +114,16 @@ const Card = ({ docObj, documentId, name, thumbnail, content, handleDelete, hand
   return (
     <>
       <div className="bg-white border border-gray-200 rounded-2xl shadow flex flex-col justify-between w-full max-w-sm mx-auto h-auto min-h-[320px] sm:min-h-[340px] lg:min-h-[360px] p-0 relative transition hover:shadow-lg group"
-        style={{
-          backgroundImage: `url(${leafyBg})`,
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundColor: 'rgba(255,255,255,0.95)',
-        }}
+       
+    >
+    <div
+    style={{
+      backgroundImage: `url(${leafyBg})`,
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundColor: 'rgba(255,255,255,0.95)',
+    }}
     >
       <ToastContainer />
         <div className="flex justify-end p-2">
@@ -199,6 +202,7 @@ const Card = ({ docObj, documentId, name, thumbnail, content, handleDelete, hand
               <img src={thumbnailImg} className="object-contain h-full w-full" />
           )}
         </div>
+      </div>
       </div>
 
         {/* Card Bottom (Title & Project) */}
