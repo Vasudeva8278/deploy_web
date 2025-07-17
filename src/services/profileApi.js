@@ -27,12 +27,14 @@ export const createAndUpdateProfile = async (formData) => {
   }
 };
 
-export const fetchProfile = async () => {
+export const fetchProfile = async (userId) => {
+
   try {
-    const response = await api.get("/profile");
+   
+    const response = await api.get(`/profile/${userId}`);
     return response.data;
   } catch (error) {
-    console.error("Error while updating project", error);
+    console.error("Error while fetching profile", error);
     throw error;
   }
 };

@@ -42,7 +42,7 @@ const Login = () => {
         if (data.user.role === EXECUTIVE_ROLE_ID) {
           navigate("/NeoDocements");
         } else if (data.user.role === NEO_EXPERT_ROLE_ID) {
-          navigate("/Neo");
+          navigate("/NeoTemplates");
         } else {
           navigate("/dashboard");
         }

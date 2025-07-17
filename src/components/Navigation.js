@@ -240,19 +240,7 @@ const Navigation = () => {
       `}
     >
       {/* Logo Section */}
-      <div className={`flex flex-col items-center w-full  py-2`}>
-        <div className="w-20 h-20 flex items-center justify-center cursor-pointer" onClick={() => {
-          if (isAdmin) {
-            navigate('/dashboard');
-          } else if (isExpert) {
-            navigate('/NeoTemplates');
-          } else if (isExecutive) {
-            navigate('/NeoDocements');
-          }
-        }}>
-          <img src={logo} alt="Logo" className="w-18 h-18 object-contain ml-12" />
-        </div>
-      </div>
+     
 
       {/* Main Navigation Items */}
       <nav className={`flex flex-col items-center flex-1 ${isMobile ? 'py-2 space-y-2' : 'py-4 space-y-4'}`}>
@@ -266,7 +254,7 @@ const Navigation = () => {
               <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" />
               <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" />
               <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" />
-              <NavItem to="/profile" icon={FaUser} label="Profile" />
+             
               {/* Add any other routes/actions you want SuperAdmin to see */}
             </>
           ) : isAdmin ? (

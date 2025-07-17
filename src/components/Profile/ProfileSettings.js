@@ -7,461 +7,364 @@ import {
   fetchProfile,
 } from "../../services/profileApi";
 import { ToastContainer, toast } from "react-toastify";
-import photo from '../../Assets/general_profile.png';
+import photo from "../../Assets/general_profile.png";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-
 
 const ProfileSettings = ({ onClose }) => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [addressError, setAddressError] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState([]);
   const { user } = useContext(AuthContext);
+
   const [formData, setFormData] = useState({
-    userId: "", // Add userId for backend identification
-    firstName: user && user.name ? user.name : "",
+    userId: "",
+    firstName: "",
     lastName: "",
-    email: user && user.email ? user.email : "",
+    email: "",
     mobile: "",
     gender: "",
     dateOfBirth: "",
     address: "",
   });
 
+  // Fetch roles from API
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+        const res = await axios.get(`${API_URL}/api/roles`);
+        console.log("Fetched roles:", res.data);
+        setRoles(res.data);
+        
+        // Print each role and validate
+        res.data.forEach(role => {
+          console.log(`Role ID: ${role._id}, Name: ${role.name}, Valid: ${!!role._id && !!role.name}`);
+        });
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+      }
+    };
 
-  const EXECUTIVE = "68621597db15fbb9bbd2f838";
-  const EXPERT = "68621581db15fbb9bbd2f836";
-  const ADMIN = "68621571db15fbb9bbd2f834";
-  
-  // Function to get role name based on role ID
+    fetchRoles();
+  }, []);
+
   const getRoleName = (roleId) => {
-    if (roleId === "68621571db15fbb9bbd2f834") return "Admin";
-    if (roleId === "68621581db15fbb9bbd2f836") return "Neo Expert";
-    if (roleId === "68621597db15fbb9bbd2f838") return "Neo Executive";
-    return "User";
+    const role = roles.find(r => r._id === roleId);
+    return role ? role.name : "User";
   };
 
-  // Print user role name when component mounts
   useEffect(() => {
-    if (user && user.role) {
-      const roleName = getRoleName(user.role);
-      console.log(`User Role: ${roleName} (ID: ${user.role})`);
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        userId: user._id || user.id || "",
+        firstName: user.name || "",
+        email: user.email || "",
+      }));
     }
   }, [user]);
 
-  // Fetch initial profile data on component mount
+  useEffect(() => {
+    if (user?.role) {
+      console.log("User Role ID:", user.role);
+      console.log("User Role Name:", getRoleName(user.role));
+    }
+  }, [user, roles]);
+
   useEffect(() => {
     const fetchProfileData = async () => {
+      if (!user) return;
+
+      const userId = user._id || user.id;
+      if (!userId) return;
+
       try {
-        const response = await fetchProfile(); // Replace with your backend API endpoint
-        if (response.profile) {
-          const profile = response.profile;
+        setIsLoading(true);
+        const profile = await fetchProfile(userId);
+        console.log("Fetched profile object:", profile);
+
+        let formattedDate = "";
           if (profile.dateOfBirth) {
-            profile.dateOfBirth = new Date(profile.dateOfBirth)
+          formattedDate = new Date(profile.dateOfBirth)
               .toISOString()
               .split("T")[0];
           }
+
           if (profile.profilePic) {
             setImagePreview(profile.profilePic);
           }
-          // Ensure all fields are strings to prevent trim() errors
-          const safeProfile = {
-            userId: profile.userId || "",
-            firstName: profile.firstName || "",
+
+        // Handle address object properly
+        const addressData = profile.address || {};
+        console.log("Address data:", addressData);
+
+        setFormData({
+          userId: profile.userId || userId,
+          firstName: profile.firstName || user.name || "",
             lastName: profile.lastName || "",
-            email: profile.email || "",
+          email: profile.email || user.email || "",
             mobile: profile.mobile || "",
             gender: profile.gender || "",
-            dateOfBirth: profile.dateOfBirth || "",
+          dateOfBirth: formattedDate,
             address: profile.address || "",
-          };
-          setFormData(safeProfile);
-        }
+        });
       } catch (error) {
-        console.error("Error fetching profile data:", error.message);
+        console.error("Error fetching profile:", error);
+        toast.error("Failed to load profile");
+      } finally {
+        setIsLoading(false);
       }
     };
+
     fetchProfileData();
-  }, []);
+  }, [user]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
-    
-    // Convert all values to strings to ensure .trim() works
-    const firstName = String(formData.firstName || '');
-    const lastName = String(formData.lastName || '');
-    const email = String(formData.email || '');
-    const mobile = String(formData.mobile || '');
-    const gender = String(formData.gender || '');
-    const dateOfBirth = String(formData.dateOfBirth || '');
-    const address = String(formData.address || '');
-    
-    if (!firstName.trim())
-      newErrors.firstName = "First name is required.";
-    if (!lastName.trim())
-      newErrors.lastName = "Last name is required.";
-    if (!email.trim()) 
-      newErrors.email = "Email address is required.";
-    if (!mobile.trim()) {
-      newErrors.mobile = "Mobile number is required.";
-    } else if (!/^\d{10}$/.test(mobile)) {
-      newErrors.mobile = "Enter a valid 10-digit mobile number.";
-    }
-    if (!gender.trim()) 
-      newErrors.gender = "Please select a gender.";
-    if (!dateOfBirth.trim())
-      newErrors.dateOfBirth = "Date of birth is required.";
-    if (!address.trim()) 
-      newErrors.address = "Address is required.";
+    if (!formData.firstName?.trim()) newErrors.firstName = "Required";
+    if (!formData.lastName?.trim()) newErrors.lastName = "Required";
+    if (!formData.email?.trim()) newErrors.email = "Required";
+    if (!formData.mobile?.trim()) newErrors.mobile = "Required";
+    if (!formData.gender?.trim()) newErrors.gender = "Required";
+    if (!formData.dateOfBirth?.trim()) newErrors.dateOfBirth = "Required";
+    if (!formData.address?.trim()) newErrors.address = "Address is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "address") setAddressError("");
-    // Ensure the value is always a string
-    setFormData({ ...formData, [name]: String(value || '') });
-    setErrors({ ...errors, [name]: "" });
-  };
-
-  const handleChangePwd = () => {
-    setIsModalOpen(true);
-  };
-
-  const validateAddress = (address) => {
-    // Match format: "Street, City, State, Postal Code, Country"
-    //const addressPattern = /^.+,\s*.+,\s*[A-Za-z]{2},\s*\d{6},\s*.+$/;
-    const addressPattern = /^.+\s*,\s*.+\s*,\s*[A-Za-z]*\s*,\s*\d{6}\s*,\s*.+$/;
-    if (!addressPattern.test(address)) {
-      console.log("address validation failed");
-      return "Please enter the complete address in the format: Street, City, State, Postal Code, Country.";
-    }
-    console.log("address validated");
-    return null;
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
-    const error = validateAddress(formData.address);
-    if (error) {
-      setAddressError(error);
-      return;
-    }
     try {
-      const formDataToSend = new FormData();
+      setIsLoading(true);
+      const fd = new FormData();
 
-      // Append form data fields
+      // Check if profile picture is selected
+      const hasProfilePic = formData.profilePic instanceof File;
+      if (hasProfilePic) {
+        toast.info("Preparing to upload profile picture...");
+      }
+
+      // Add all fields including address as string
       Object.entries(formData).forEach(([key, value]) => {
-        console.log(key, " : : ", value);
-        if (key === "profilePic" && value instanceof File) {
-          console.log(key, " ** : ", value);
-          formDataToSend.append(key, value); // Append file
-        } else {
-          formDataToSend.append(key, value); // Append other data
+        if (key === 'profilePic' && value instanceof File) {
+          // Handle profile picture file
+          fd.append('profilePic', value);
+          toast.info(`Profile picture added to upload: ${value.name}`);
+        } else if (key !== 'profilePic') {
+          // Handle other fields
+          fd.append(key, value || "");
         }
       });
 
-      const response = await createAndUpdateProfile(formDataToSend); // Replace with your backend API endpoint
-      if (response.status === 200 || response.status === 201) {
-        toast.success("Profile saved successfully!");
+      console.log("FormData contents:");
+      for (let [key, value] of fd.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      toast.info("Sending profile data to server...");
+      const res = await createAndUpdateProfile(fd);
+
+      if (res.status === 200 || res.status === 201) {
+        if (hasProfilePic) {
+          toast.success("Profile and picture saved successfully!");
+        } else {
+          toast.success("Profile saved successfully!");
+        }
+      } else {
+        toast.error("Failed to save profile.");
       }
     } catch (error) {
-      console.error("Error saving profile data:", error.message);
-      toast.error("Failed to save profile data. Please try again.");
+      console.error("Error saving profile:", error);
+      toast.error(`Error saving profile: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setFormData({ ...formData, profilePic: file }); // Store the file in formData
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result); // Preview the uploaded image
-      };
-      reader.readAsDataURL(file);
+    console.log("Selected file:", file);
+    
+    if (!file || !file.type.startsWith("image/")) {
+      console.log("Invalid file type:", file?.type);
+      toast.error("Please select a valid image file");
+      return;
     }
-  };
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Max 5MB image allowed.");
+      return;
+    }
 
-  const handleImageClick = () => {
-    document.getElementById("imageUpload").click();
-  };
+    console.log("Setting profile picture in formData:", file.name, file.size, file.type);
+    toast.info(`Selected image: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+    
+    setFormData((prev) => ({
+      ...prev,
+      profilePic: file,
+    }));
 
-  const featureRouteMap = {
-    'viewDashboard': '/dashboard',
-    'projects': '/projects',
-    'Clients': '/clients',
-    'Templates': '/Neo',
-    'Documents': '/NeoDocements',
-    'Users': '/user-manage',
-    'viewProfile': '/profile',
-    'viewOrganizations': '/organizations',
+    const reader = new FileReader();
+    reader.onload = () => {
+      console.log("File preview created");
+      setImagePreview(reader.result);
+      toast.success("Image preview loaded successfully");
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleClose = async () => {
     if (onClose) {
       onClose();
-    } else if (user && user.role) {
-      try {
-        const res = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/roles/${user.role}`);
-        const features = res.data.features || [];
-        if (features.length > 0 && featureRouteMap[features[0]]) {
-          navigate(featureRouteMap[features[0]]);
-          return;
-        }
-      } catch (err) {
-        // fallback below
-      }
-      // Fallback: go to dashboard or home
-      navigate('/dashboard');
     } else {
-      // Fallback: go to dashboard or home
-      navigate('/dashboard');
+      navigate("/dashboard");
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-lg">Loading profile...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className='flex flex-col gap-4 bg-white shadow rounded-lg relative'>
-      {/* Top right close icon */}
+    <div className="bg-white rounded shadow p-6 relative">
       <button
-        className='absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none'
+        className="absolute top-2 right-2 text-gray-500 text-2xl"
         onClick={handleClose}
-        aria-label='Close'
       >
         &times;
       </button>
-      <div className='flex justify-between items-center bg-blue-100  p-4 border-red-500'>
-        <h2 className='text-xl font-bold text-gray-700'>Profile Settings</h2>
-        <div className='flex gap-4'>
-          <button
-            className='text-sm text-red-600 font-semibold mr-6'
-            onClick={handleChangePwd}
-          >
-            Change Password
-          </button>
+
+      <h2 className="text-xl font-bold mb-4">Profile Settings</h2>
+
+      <div className="flex items-center gap-4 mb-4">
+        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100">
+          <img
+            src={imagePreview || photo}
+            alt="Profile"
+            className="w-full h-full object-cover"
+          />
         </div>
-      </div>
-      <div className='pl-8 pr-8 mt-4 pt-4'>
-        <div className='flex items-center mb-4 '>
-          <div className='w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center text-gray-500'>
-            {imagePreview ? (
-              <img src={imagePreview} alt='Profile' className='w-full h-full' />
-            ) : (
-              <img src={photo} />
-            )}
-          </div>
-          <button
-            className='ml-4 text-sm text-blue-500 hover:underline'
-            onClick={handleImageClick}
-          >
-            Edit Image
-          </button>
           <input
-            type='file'
-            id='imageUpload'
-            accept='image/*'
+          type="file"
+          id="profileImage"
+          accept="image/*"
             style={{ display: "none" }}
             onChange={handleImageUpload}
           />
+        <button
+          className="text-blue-500 underline"
+          onClick={() => document.getElementById("profileImage").click()}
+        >
+          Change Photo
+        </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className='flex flex-col gap-8'>
-            <div className='grid grid-cols-2 gap-6 '>
-              <div>
-                <label
-                  htmlFor='firstName'
-                  className='block text-sm font-medium text-gray-700'
-                >
-                  First Name
-                </label>
-                <input
-                  type='text'
-                  id='firstName'
-                  name='firstName'
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className='mt-2 h-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-                  placeholder='First Name'
-                />
-                {errors.firstName && (
-                  <p className='text-red-500 text-sm mt-2'>
-                    {errors.firstName}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor='lastName'
-                  className='block text-sm font-medium text-gray-700'
-                >
-                  Last Name
-                </label>
-                <input
-                  type='text'
-                  id='lastName'
-                  name='lastName'
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className='mt-2 h-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-                  placeholder='Last Name'
-                />
-                {errors.lastName && (
-                  <p className='text-red-500 text-sm mt-2'>{errors.lastName}</p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor='email'
-                  className='block text-sm font-medium text-gray-700'
-                >
-                  Email Address
-                </label>
-                <input
-                  type='email'
-                  id='email'
-                  name='email'
-                  value={formData.email}
-                  readOnly
-                  onChange={handleChange}
-                  className='mt-2 h-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-                  placeholder='Email Address'
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor='mobile'
-                  className='block text-sm font-medium text-gray-700'
-                >
-                  Mobile Number
-                </label>
-                <input
-                  type='tel'
-                  id='mobile'
-                  name='mobile'
-                  value={formData.mobile}
-                  onChange={handleChange}
-                  className='mt-2 h-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-                  placeholder='Mobile Number'
-                />
-                {errors.mobile && (
-                  <p className='text-red-500 text-sm mt-2'>{errors.mobile}</p>
-                )}
-              </div>
-            </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input name="firstName" label="First Name" value={formData.firstName} onChange={handleChange} error={errors.firstName} />
+        <Input name="lastName" label="Last Name" value={formData.lastName} onChange={handleChange} error={errors.lastName} />
+        <Input name="email" label="Email" value={formData.email} readOnly />
+        <Input name="mobile" label="Mobile" value={formData.mobile} onChange={handleChange} error={errors.mobile} />
+        <Input name="dateOfBirth" label="Date of Birth" value={formData.dateOfBirth} onChange={handleChange} type="date" error={errors.dateOfBirth} />
+        <Input name="address" label="Address" value={formData.address} onChange={handleChange} error={errors.address} />
 
-            <div>
-              <label className='block text-sm font-medium text-gray-700'>
-                Gender
-              </label>
-              <div className='flex items-center gap-4 mt-2'>
-                {["Male", "Female", "Other"].map((option) => (
-                  <label key={option} className='flex items-center'>
-                    <input
-                      type='radio'
-                      name='gender'
-                      value={option.toLowerCase()}
-                      checked={formData.gender === option.toLowerCase()}
-                      onChange={handleChange}
-                      className='text-blue-500 focus:ring-blue-500'
-                    />
-                    <span className='ml-2 text-gray-700'>{option}</span>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium mb-1">Gender</label>
+          <div className="flex gap-4">
+            {["male", "female", "other"].map((g) => (
+              <label key={g} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="gender"
+                  value={g}
+                  checked={formData.gender === g}
+                  onChange={handleChange}
+                />
+                <span className="capitalize">{g}</span>
                   </label>
                 ))}
               </div>
-              {errors.gender && (
-                <p className='text-red-500 text-sm mt-2'>{errors.gender}</p>
-              )}
+          {errors.gender && <p className="text-red-500 text-sm">{errors.gender}</p>}
             </div>
 
-            <div className='grid grid-cols-2 gap-6'>
-              <div>
-                <label
-                  htmlFor='dateOfBirth'
-                  className='block text-sm font-medium text-gray-700'
-                >
-                  Date of Birth
-                </label>
-                <input
-                  type='date'
-                  id='dateOfBirth'
-                  name='dateOfBirth'
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                  className='mt-2 h-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-                />
-                {errors.dateOfBirth && (
-                  <p className='text-red-500 text-sm mt-2'>
-                    {errors.dateOfBirth}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor='address'
-                  className='block text-sm font-medium text-gray-700'
-                >
-                  Address
-                </label>
-                <input
-                  type='text'
-                  id='address'
-                  name='address'
-                  value={formData.address}
-                  onChange={handleChange}
-                  className='mt-2 h-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-                  placeholder='123 Main St, Springfield, IL, 62704, USA'
-                />
-                <span>
-                  {errors.address && (
-                    <p className='text-red-500 text-sm mt-2'>
-                      {errors.address}
-                    </p>
-                  )}
-
-                  {addressError && (
-                    <p className='text-red-500 text-sm mt-2'>{addressError}</p>
-                  )}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className='flex gap-4 mt-8'>
-            <button
-              type='submit'
-              className='bg-blue-500 text-white px-6 py-2 rounded-lg font-medium justify-center'
-            >
-              Save Changes
-            </button>
-            <button
-              type='button'
-              className='bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-300'
-              onClick={handleClose}
-            >
-              Close
-            </button>
-            <button
-              type='button'
-              className='bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-300'
-              onClick={handleClose}
-            >
-              Cancel
-            </button>
-          </div>
+        <div className="col-span-2 mt-4 flex justify-end gap-4">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            {isLoading ? "Saving..." : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="bg-gray-200 px-4 py-2 rounded"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="bg-red-100 px-4 py-2 rounded"
+          >
+            ResetPassword
+          </button>
+        </div>
         </form>
-        <ToastContainer />
+
         <NeoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <ChangePassword className='gap-4' onClose={() => setIsModalOpen(false)} />
+        <ChangePassword onClose={() => setIsModalOpen(false)} />
         </NeoModal>
-      </div>
+
+      <ToastContainer position="top-right" />
     </div>
   );
 };
 
-export default ProfileSettings;
+const Input = ({ name, label, value, onChange, type = "text", readOnly = false, error }) => (
+  <div>
+    <label className="block text-sm font-medium mb-1" htmlFor={name}>
+      {label}
+    </label>
+    <input
+      type={type}
+      id={name}
+      name={name}
+      value={value}
+      onChange={onChange}
+      readOnly={readOnly}
+      className={`w-full h-10 px-3 border rounded ${
+        readOnly ? "bg-gray-100" : ""
+      }`}
+    />
+    {error && <p className="text-red-500 text-sm">{error}</p>}
+  </div>
+);
 
+export default ProfileSettings;

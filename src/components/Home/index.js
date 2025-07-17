@@ -31,9 +31,15 @@ const Home = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const location = useLocation();
 
+
+  const EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
+  const EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
+
   // Get user from context or localStorage
   const { user } = useContext(AuthContext);
   const roleId = user?.role || localStorage.getItem("role");
+  
+  const shouldShowSidebar = ![EXECUTIVE_ROLE_ID, EXPERT_ROLE_ID].includes(roleId);
 
   useEffect(() => {
     const fetchRoleFeatures = async () => {
@@ -93,18 +99,17 @@ const Home = () => {
     )}
 
     {/* LEFT: TemplatesSidebar */}
-    {!isMobile && (isNeoTemplates || isNeoProjectTemplates) && (
+    {!isMobile && shouldShowSidebar && (isNeoTemplates || isNeoProjectTemplates) && (
       <div className='w-44 flex-shrink-0'>
-  <TemplatesSidebar />
-</div>
-
+        <TemplatesSidebar />
+      </div>
     )}
 
-{!isMobile && (isNeoDocuments || isNeoProjectDocuments) && (
+    {/* LEFT: DocumentSideBar */}
+    {!isMobile && shouldShowSidebar && (isNeoDocuments || isNeoProjectDocuments) && (
       <div className='w-44 flex-shrink-0'>
-  <DocumentSideBar />
-</div>
-
+        <DocumentSideBar />
+      </div>
     )}
 
 
@@ -122,12 +127,8 @@ const Home = () => {
             )}
             <Route path='/dashboard' element={<Dashboard />} />
             <Route path='/' element={<LandingPage />} />
-            {roleFeatures.includes('Templates') && (
-              <Route path='/NeoTemplates' element={<NeoTemplates />} />
-            )}
-            {roleFeatures.includes('Documents') && (
-              <Route path='/NeoDocements' element={<NeoDocements />} />
-            )}
+            <Route path='/NeoTemplates' element={<NeoTemplates />} />
+            <Route path='/NeoDocements' element={<NeoDocements />} />
             {roleFeatures.includes('Templates') && (
               <Route path='/document/:id' element={<DocxToTextConverter />} />
             )}

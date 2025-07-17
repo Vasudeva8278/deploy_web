@@ -13,11 +13,21 @@ const ProfileHeader = ({ onSearch }) => {
   const dropdownRef = useRef(null);
 
   const getRoleName = (roleId) => {
-    if (roleId === "68621571db15fbb9bbd2f834") return "Admin";
+    if (roleId === "685f9b7d3d988647b344e5ca") return "Admin";
     if (roleId === "68621581db15fbb9bbd2f836") return "Neo Expert";
     if (roleId === "68621597db15fbb9bbd2f838") return "Neo Executive";
+    if (roleId === "6870a1c2f0884e1560f8dadf") return "Neo Admin";
     return "User";
   };
+
+  // Print user role information
+  useEffect(() => {
+    if (user) {
+      console.log("User Role ID:", user.roleId || user.role);
+      console.log("User Role Name:", getRoleName(user.roleId || user.role));
+      console.log("Full User Object:", user);
+    }
+  }, [user]);
 
   const handleLogout = () => {
     Swal.fire({
@@ -94,9 +104,14 @@ const ProfileHeader = ({ onSearch }) => {
 
       {/* Profile Section */}
       <div className="relative flex items-center gap-2 sm:gap-3 cursor-pointer" ref={dropdownRef}>
-        {/* Show name only on desktop */}
-        <div className="hidden sm:block text-sm font-semibold text-gray-800">
-          {user?.name || "User"}
+        {/* Show name and role on desktop */}
+        <div className="hidden sm:block text-right">
+          <div className="text-sm font-semibold text-gray-800">
+            {user?.name || "User"}
+          </div>
+          <div className="text-xs text-gray-500">
+            {getRoleName(user?.roleId || user?.role)}
+          </div>
         </div>
 
         {/* Profile Icon and Chevron */}
@@ -117,7 +132,7 @@ const ProfileHeader = ({ onSearch }) => {
           <div className="absolute right-0 top-12 bg-white shadow-lg rounded-lg z-50 px-4 py-3 w-52 sm:w-64">
             <div className="flex flex-col items-start space-y-1 mb-2">
               <span className="font-semibold text-gray-800 text-sm">{user?.name || "User"}</span>
-              <span className="text-xs text-gray-500">{getRoleName(user?.roleId)}</span>
+              <span className="text-xs text-gray-500">{getRoleName(user?.roleId || user?.role)}</span>
             </div>
             <hr className="my-2" />
             <button

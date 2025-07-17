@@ -338,15 +338,16 @@ const NeoDocements = () => {
 
   if (isExecutive || isExpert) {
     return (
-      <div className='flex flex-row w-full'>
+      <div className='flex flex-row w-max-8xl'>
         <DocumentSideBar onTemplateSelect={setSelectedTemplateFileName} />
         <div className='flex flex-col w-full'>
           <div className='w-full max-w-8xl w-full p-2 '>
             <div className="flex justify-between items-center">
-            <span className="text-2xl font-bold">
-                Templates
+            <span className="text-2xl font-bold ml-8">
+                Documents
               </span>
-  <div>
+  <div className="flex justify-between items-center">
+    <div>
                 <button
                   className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                   onClick={() => setViewMode('card')}
@@ -359,8 +360,8 @@ const NeoDocements = () => {
                 >
                   <FaTable className="inline-block w-5 h-5" />
                 </button>
-              </div>
-           
+                </div>
+                <div>
                 <button
                   onClick={() => openModal('generateDocs')}
                   className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-md"
@@ -368,9 +369,13 @@ const NeoDocements = () => {
                   <Sparkles className="w-5 h-5" />
                   Generate Documents
                 </button>
+                </div>
+              </div>
+           
+          
           
             </div>
-            <div className="w-full max-w-8xl mx-auto sm:px-6 lg:px-8 mr-2">
+            <div className="">
               <div className='rounded-xl p-6 mr-2'>
                 <TemplateCards
                   documents={filteredDocs}
@@ -378,8 +383,7 @@ const NeoDocements = () => {
                   handleDeleteTemplate={handleDeleteDocument}
                   handleDownload={handleDocumentDownload}
                   cardHeight="h-[420px]" cardWidth="max-w-[320px]"
-                  viewMode={viewMode}
-                />
+                  viewMode={viewMode}  />
               </div>
             </div>
           </div>
@@ -388,7 +392,7 @@ const NeoDocements = () => {
               {(() => {
                 try {
                   if (displayPage === 'generateDocs') {
-                    return <GenerateDocument onClose={() => setIsModalOpen(false)} projectId={selectedProjectId || null} templateId={selectedTemplateId || null} />;
+                    return <GenerateDocument onCclassName="n]mr"lose={() => setIsModalOpen(false)} projectId={selectedProjectId || null} templateId={selectedTemplateId || null} />;
                   }
                   if (displayPage === 'designTemplates') {
                     return <DesignTemplate onClose={() => setIsModalOpen(false)} value={selectedProject} hasProject={false} />;

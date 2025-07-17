@@ -147,8 +147,8 @@ const DocumentSideBar = () => {
   const toggleProject = (projectId, event) => {
     event.stopPropagation();
     setProjectDocuments(prev =>
-      prev.map(project =>
-        project.projectId === projectId
+      prev.map(project => 
+        project.projectId === projectId 
           ? { ...project, expanded: !project.expanded }
           : project
       )
@@ -157,7 +157,7 @@ const DocumentSideBar = () => {
 
   const handleProjectClick = (projectId, projectData) => {
     navigate(`/NeoDocements/${projectId}`, {
-      state: {
+      state: { 
         data: {
           _id: projectId,
           projectName: projectData.projectName
@@ -177,43 +177,10 @@ const DocumentSideBar = () => {
   const totalDocuments = projectDocuments.reduce((sum, project) => sum + project.documents.length, 0);
 
   if (isRestrictedUser) {
-    return (
-      <div className={`fixed top-0 left-20 z-20 h-screen bg-white border-r border-gray-200 flex flex-col overflow-hidden transition-all duration-300 ${
-        isCollapsed ? 'w-12' : 'w-40'
-      }`}>
-        {/* Header */}
-        <div className="p-2 border-b border-gray-200 flex-shrink-0"></div>
-        {/* Role and Authorization Message */}
-        <div className="flex-1 overflow-y-auto p-2 flex flex-col">
-          <div className="text-center py-4">
-            <div className="mb-3">
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <span className="text-gray-600 font-bold text-sm">
-                  {user?.role === NEO_EXPERT_ROLE_ID ? "E" : "X"}
-                </span>
-              </div>
-            </div>
-            {!isCollapsed && (
-              <>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                  <p className="text-xs text-yellow-800 leading-relaxed">
-                    You are not authorized to view projects. Please contact your administrator for access.
-                  </p>
-                </div>
-                <div className="text-xs text-gray-500">
-                  Role: {getRoleDisplayName(user?.role || "")}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-        {/* Footer */}
-        <div className="border-t border-gray-200 p-2 flex-shrink-0">
-          <div className="flex items-center px-1 py-1.5 hover:bg-gray-100 rounded cursor-pointer transition-colors duration-200">
-            <Trash2 className="w-3 h-3 mr-1 text-gray-600 flex-shrink-0" />
-            {!isCollapsed && <span className="text-xs text-gray-700 flex-1">Trash</span>}
-          </div>
-        </div>
+  return (
+      <div >
+      
+       
       </div>
     );
   }
@@ -226,13 +193,13 @@ const DocumentSideBar = () => {
       isCollapsed ? 'w-12' : 'w-40'
     }`}>
       {/* Toggle Button */}
-     
+
       {/* Projects and Documents - Main content area that can grow */}
       <div className="flex-1 overflow-y-auto p-2 flex flex-col">
         {!isCollapsed && (
-          <h3 className="text-xs font-semibold text-gray-800 mb-2 flex-shrink-0">
+        <h3 className="text-xs font-semibold text-gray-800 mb-2 flex-shrink-0">
             Projects
-          </h3>
+        </h3>
         )}
         <hr />
         {/* Scrollable projects/documents list with fixed height */}
@@ -277,11 +244,11 @@ const DocumentSideBar = () => {
                   {!isCollapsed && (
                     <>
                       <span className="text-xs font-medium flex-1 truncate">
-                        {project.projectName}
-                      </span>
-                      {project.documents.length > 0 && (
-                        <span className="text-xs text-gray-500 ml-1">({project.documents.length})</span>
-                      )}
+                    {project.projectName}
+                  </span>
+                  {project.documents.length > 0 && (
+                    <span className="text-xs text-gray-500 ml-1">({project.documents.length})</span>
+                  )}
                     </>
                   )}
                 </div>
@@ -299,8 +266,8 @@ const DocumentSideBar = () => {
                         <span className="text-xs text-gray-600 flex-1 truncate">
                           {doc.templateName || doc.name}
                         </span>
-                      </div>
-                    ))}
+              </div>
+            ))}
                   </div>
                 )}
                 {/* Show "No documents" message for projects without documents when expanded */}
@@ -312,7 +279,7 @@ const DocumentSideBar = () => {
               </div>
             ))
           )}
-        </div>
+          </div>
         <hr />
       </div>
       <hr />

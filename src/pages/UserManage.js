@@ -19,10 +19,12 @@ const api = axios.create({
 const NEO_EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
 const NEO_EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
 const SUPER_ADMIN_ROLE_ID = "68621581db15fbb9bbd2f839";
+const NEO_SUPER_ADMIN_ROLE_ID = "6870a1c2f0884e1560f8dadf";
 const roleOptions = [
   { value: NEO_EXPERT_ROLE_ID, label: 'Neo Expert' },
   { value: NEO_EXECUTIVE_ROLE_ID, label: 'Neo Executive' },
-  { value: SUPER_ADMIN_ROLE_ID, label: 'Admin' }
+  { value: SUPER_ADMIN_ROLE_ID, label: 'Admin' },
+  { value: NEO_SUPER_ADMIN_ROLE_ID, label: 'Neo Super Admin' }
 ];
 
 const FEATURE_LIST = ["Projects", "Clients", "Templates", "Documents", "Users"];
