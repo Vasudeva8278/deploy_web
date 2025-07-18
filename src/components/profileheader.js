@@ -23,9 +23,10 @@ const ProfileHeader = ({ onSearch }) => {
   // Print user role information
   useEffect(() => {
     if (user) {
-      console.log("User Role ID:", user.roleId || user.role);
-      console.log("User Role Name:", getRoleName(user.roleId || user.role));
-      console.log("Full User Object:", user);
+      console.log("ProfileHeader - User Role ID:", user.roleId || user.role);
+      console.log("ProfileHeader - User Role Name:", getRoleName(user.roleId || user.role));
+      console.log("ProfileHeader - User Profile Pic:", user.profilePic);
+      console.log("ProfileHeader - Full User Object:", user);
     }
   }, [user]);
 
@@ -122,6 +123,7 @@ const ProfileHeader = ({ onSearch }) => {
           <img
             src={user?.profilePic || photo}
             alt="Profile"
+            key={user?.profilePic || 'default'} // Force re-render when profilePic changes
             className="w-8 h-8 rounded-full object-cover"
           />
           <ChevronDown className="w-5 h-5 text-gray-400" />

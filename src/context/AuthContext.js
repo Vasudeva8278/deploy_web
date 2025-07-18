@@ -95,8 +95,24 @@ const AuthProvider = ({ children }) => {
     localStorage.removeItem('orgId');
   };
 
+  const refreshUser = async () => {
+    if (token) {
+      try {
+        const response = await axios.get('/api/users/me', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setUser(response.data);
+        console.log('User data refreshed:', response.data);
+      } catch (error) {
+        console.error('Failed to refresh user data', error);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, signup, logout, setUser, setToken }}>
+    <AuthContext.Provider value={{ user, token, login, signup, logout, setUser, setToken, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
