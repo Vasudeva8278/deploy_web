@@ -316,10 +316,13 @@ const UserManage = () => {
                           <img
                             src={u.profilePic}
                             alt={u.name}
-                            style={{ width: '30px', height: '30px', borderRadius: '50%' }}
+                            className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                            style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
                           />
                         ) : (
-                          <FaUser />
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-200">
+                            <FaUser className="text-gray-500 text-sm" />
+                          </div>
                         )}
                       </td>
                       <td>{u.name}</td>
