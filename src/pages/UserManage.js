@@ -12,6 +12,9 @@ import { useCallback } from 'react';
 import UserCard from '../components/UserCard';
 import Select from 'react-select';
 import { getAllProjects } from "../services/projectApi";
+
+
+
 const api = axios.create({
   baseURL: `${process.env.REACT_APP_BASE_URL}/api/users/getalluser`, // updated baseURL
 });
@@ -405,7 +408,7 @@ const UserManage = () => {
             justifyContent: 'center',
           }}>
             <div style={{ position: 'relative' }}>
-              <UserCard onClose={() => setViewUserId(null)} />
+              <UserCard userid={viewUserId} onClose={() => setViewUserId(null)} />
             </div>
           </div>
         )}

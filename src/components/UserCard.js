@@ -3,16 +3,58 @@ import axios from 'axios';
 
 const UserCard = ({ userid, onClose }) => {
     const [userdetails, setUserdetails] = useState(null);
+    const [profileDetails, setProfileDetails] = useState(null);
+    const [userInfo, setUserInfo] = useState(null);
+    const [roles, setRoles] = useState([]);
     const [showCard, setShowCard] = useState(true);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch roles for role name display
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
+                const res = await axios.get(`${API_URL}/api/roles`);
+                setRoles(res.data);
+            } catch (error) {
+                console.error('Error fetching roles:', error);
+            }
+        };
+        fetchRoles();
+    }, []);
+
+    const getRoleName = (roleId) => {
+        const role = roles.find(r => r._id === roleId);
+        return role ? role.name : "User";
+    };
 
     useEffect(() => {
         if (!userid) return;
+        
         const fetchUserDetails = async () => {
             try {
-                const userdetailsbyid = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/profile/${userid}`);
-                setUserdetails(userdetailsbyid.data);
+                setLoading(true);
+                
+                // Fetch user information
+                const userResponse = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/users/getalluser`);
+                const allUsers = userResponse.data.users || userResponse.data;
+                const currentUser = allUsers.find(u => u._id === userid);
+                setUserInfo(currentUser);
+                
+                // Fetch profile details
+                try {
+                    const profileResponse = await axios.get(`${process.env.REACT_APP_API_URL || "http://13.200.200.137:7000"}/api/profile/${userid}`);
+                    setProfileDetails(profileResponse.data);
+                } catch (profileError) {
+                    console.log('No profile found for user:', userid);
+                    setProfileDetails(null);
+                }
+                
+                setUserdetails(currentUser); // Keep for backward compatibility
             } catch (error) {
                 console.error('Error fetching user details:', error);
+            } finally {
+                setLoading(false);
             }
         }
         fetchUserDetails();
@@ -22,7 +64,7 @@ const UserCard = ({ userid, onClose }) => {
 
     return (
         <div style={{
-            maxWidth: '700px',
+            maxWidth: '800px',
             margin: '20px auto',
             padding: '32px',
             borderRadius: '12px',
@@ -49,31 +91,77 @@ const UserCard = ({ userid, onClose }) => {
             >
                 ×
             </button>
-            <h3 style={{ marginBottom: 18, fontWeight: 600, fontSize: 22, textAlign: 'center' }}>User Profile</h3>
-            {userdetails ? (
+            <h3 style={{ marginBottom: 18, fontWeight: 600, fontSize: 22, textAlign: 'center' }}>User Profile Details</h3>
+            
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '20px' }}>Loading user details...</div>
+            ) : userInfo ? (
                 <>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
-                    {userdetails.profilePic ? (
-                        <img src={userdetails.profilePic} alt="Profile" style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '2px solid #eee' }} />
+                    {userInfo.profilePic ? (
+                        <img src={userInfo.profilePic} alt="Profile" style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '2px solid #eee' }} />
                     ) : (
                         <div style={{ width: 100, height: 100, borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, color: '#888' }}>👤</div>
                     )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', gap: 32 }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ marginBottom: 12 }}><strong>First Name:</strong> {userdetails.firstName || '-'}</div>
-                        <div style={{ marginBottom: 12 }}><strong>Last Name:</strong> {userdetails.lastName || '-'}</div>
-                        <div style={{ marginBottom: 12 }}><strong>Mobile:</strong> {userdetails.mobile || '-'}</div>
-                        <div style={{ marginBottom: 12 }}><strong>Gender:</strong> {userdetails.gender ? userdetails.gender.charAt(0).toUpperCase() + userdetails.gender.slice(1) : '-'}</div>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ marginBottom: 12 }}><strong>Date of Birth:</strong> {userdetails.dateOfBirth ? new Date(userdetails.dateOfBirth).toLocaleDateString() : '-'}</div>
-                        <div style={{ marginBottom: 12 }}><strong>Address:</strong> {userdetails.address ? `${userdetails.address.street || ''}${userdetails.address.city ? ', ' + userdetails.address.city : ''}${userdetails.address.state ? ', ' + userdetails.address.state : ''}${userdetails.address.postalCode ? ', ' + userdetails.address.postalCode : ''}${userdetails.address.country ? ', ' + userdetails.address.country : ''}` : '-'}</div>
+                
+                {/* User Information Section */}
+                <div style={{ marginBottom: 24 }}>
+                    <h4 style={{ marginBottom: 12, fontWeight: 600, color: '#333', borderBottom: '2px solid #eee', paddingBottom: 8 }}>User Information</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div><strong>Name:</strong> {userInfo.name || '-'}</div>
+                        <div><strong>Email:</strong> {userInfo.email || '-'}</div>
+                        <div><strong>Role:</strong> {getRoleName(userInfo.role)}</div>
+                        <div><strong>Organization ID:</strong> {userInfo.orgId || '-'}</div>
+                        <div><strong>Email Verified:</strong> {userInfo.emailVerified ? 'Yes' : 'No'}</div>
+                        <div><strong>Created:</strong> {userInfo.createdAt ? new Date(userInfo.createdAt).toLocaleDateString() : '-'}</div>
                     </div>
                 </div>
+
+                {/* Profile Details Section */}
+                {profileDetails && (
+                    <div style={{ marginBottom: 24 }}>
+                        <h4 style={{ marginBottom: 12, fontWeight: 600, color: '#333', borderBottom: '2px solid #eee', paddingBottom: 8 }}>Profile Details</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div><strong>First Name:</strong> {profileDetails.firstName || '-'}</div>
+                            <div><strong>Last Name:</strong> {profileDetails.lastName || '-'}</div>
+                            <div><strong>Mobile:</strong> {profileDetails.mobile || '-'}</div>
+                            <div><strong>Gender:</strong> {profileDetails.gender ? profileDetails.gender.charAt(0).toUpperCase() + profileDetails.gender.slice(1) : '-'}</div>
+                            <div><strong>Date of Birth:</strong> {profileDetails.dateOfBirth ? new Date(profileDetails.dateOfBirth).toLocaleDateString() : '-'}</div>
+                            <div><strong>Address:</strong> {profileDetails.address || '-'}</div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Features Section */}
+                {userInfo.features && userInfo.features.length > 0 && (
+                    <div>
+                        <h4 style={{ marginBottom: 12, fontWeight: 600, color: '#333', borderBottom: '2px solid #eee', paddingBottom: 8 }}>User Features</h4>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {userInfo.features.map((feature, index) => (
+                                <span key={index} style={{
+                                    background: '#e3f2fd',
+                                    color: '#1976d2',
+                                    padding: '4px 8px',
+                                    borderRadius: '12px',
+                                    fontSize: '12px',
+                                    fontWeight: 500
+                                }}>
+                                    {feature}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {!profileDetails && (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#666', fontStyle: 'italic' }}>
+                        User has not updated their profile details yet.
+                    </div>
+                )}
                 </>
             ) : (
-                <div>User Not Update Details</div>
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>User not found</div>
             )}
             
         </div>
