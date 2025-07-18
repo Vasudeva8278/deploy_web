@@ -16,17 +16,6 @@ const api = axios.create({
   baseURL: `${process.env.REACT_APP_BASE_URL}/api/users/getalluser`, // updated baseURL
 });
 
-const NEO_EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
-const NEO_EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
-const SUPER_ADMIN_ROLE_ID = "68621581db15fbb9bbd2f839";
-const NEO_SUPER_ADMIN_ROLE_ID = "6870a1c2f0884e1560f8dadf";
-const roleOptions = [
-  { value: NEO_EXPERT_ROLE_ID, label: 'Neo Expert' },
-  { value: NEO_EXECUTIVE_ROLE_ID, label: 'Neo Executive' },
-  { value: SUPER_ADMIN_ROLE_ID, label: 'Admin' },
-  { value: NEO_SUPER_ADMIN_ROLE_ID, label: 'Neo Super Admin' }
-];
-
 const FEATURE_LIST = ["Projects", "Clients", "Templates", "Documents", "Users"];
 
 const UserManage = () => {
@@ -42,15 +31,66 @@ const UserManage = () => {
   const [editProjects, setEditProjects] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
 
+  const getRoleName = (roleId) => {
+    const role = roles.find(r => r._id === roleId);
+    return role ? role.name : "User";
+  };
+
+  // Check if current user is Super Admin
+  const isSuperAdmin = () => {
+    const superAdminRole = roles.find(r => r.name.toLowerCase().includes('super admin') || r.name.toLowerCase().includes('superadmin'));
+    return user && superAdminRole && user.role === superAdminRole._id;
+  };
+
+  // Check if current user is Admin
+  const isAdmin = () => {
+    const adminRole = roles.find(r => r.name.toLowerCase() === 'admin');
+    return user && adminRole && user.role === adminRole._id;
+  };
+
+  // Check if a user is Super Admin
+  const isUserSuperAdmin = (userRoleId) => {
+    const superAdminRole = roles.find(r => r.name.toLowerCase().includes('super admin') || r.name.toLowerCase().includes('superadmin'));
+    return superAdminRole && userRoleId === superAdminRole._id;
+  };
+
+  // Check if a user is Admin
+  const isUserAdmin = (userRoleId) => {
+    const adminRole = roles.find(r => r.name.toLowerCase() === 'admin');
+    return adminRole && userRoleId === adminRole._id;
+  };
+
+  // Check if current user can manage a specific user
+  const canManageUser = (targetUser) => {
+    if (!user || !targetUser) return false;
+    
+    // Super Admin can manage all users
+    if (isSuperAdmin()) return true;
+    
+    // Admin can manage all users except Super Admin users
+    if (isAdmin()) {
+      return !isUserSuperAdmin(targetUser.role);
+    }
+    
+    return false;
+  };
+
   // Fetch roles and their features
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const API_URL = process.env.REACT_APP_BASE_URL;
-        console.log("ur;;;;",API_URL);
-        const res = await axios.get(`${API_URL}/api/roles/`);
+        const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
+        console.log("API URL for roles:", API_URL);
+        const res = await axios.get(`${API_URL}/api/roles`);
+        console.log("Fetched roles:", res.data);
         setRoles(res.data);
+        
+        // Print each role and validate
+        res.data.forEach(role => {
+          console.log(`Role ID: ${role._id}, Name: ${role.name}, Valid: ${!!role._id && !!role.name}`);
+        });
       } catch (error) {
+        console.error("Error fetching roles:", error);
         toast.error('Failed to fetch roles');
       } finally {
         setRoleLoading(false);
@@ -68,7 +108,7 @@ const UserManage = () => {
       ? role.features.filter(f => f !== feature)
       : [...(role.features || []), feature];
     try {
-      const API_URL = process.env.REACT_APP_API_URL
+      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
       await axios.put(`${API_URL}/api/roles/${roleId}`, { features: updatedFeatures });
       setRoles(roles.map(r => r._id === roleId ? { ...r, features: updatedFeatures } : r));
       toast.success('Role features updated!');
@@ -170,6 +210,11 @@ const UserManage = () => {
     <span className="text-2xl font-bold ml-4">
             Users
           </span>
+          <div className="text-sm text-gray-600 ml-4">
+            Current User: {user?.name} ({getRoleName(user?.role)})
+            {isSuperAdmin() && <span className="text-blue-600 ml-2">- Can manage all users</span>}
+            {isAdmin() && <span className="text-green-600 ml-2">- Can manage all users except Super Admin</span>}
+          </div>
     </div>
     <input
         type="text"
@@ -184,6 +229,21 @@ const UserManage = () => {
   </div>
 
       {console.log('users data before render:', users)}
+      {console.log('current user role:', user?.role)}
+      {console.log('isSuperAdmin:', isSuperAdmin())}
+      {console.log('isAdmin:', isAdmin())}
+      {console.log('available roles:', roles)}
+      {console.log('users after filtering:', users.filter(u => {
+        if (isAdmin() && isUserSuperAdmin(u.role)) {
+          console.log('Hiding Super Admin user:', u.name, 'from Admin view');
+          return false;
+        }
+        if (isAdmin()) {
+          console.log('Admin can see user:', u.name, 'Role:', getRoleName(u.role));
+          return !isUserSuperAdmin(u.role);
+        }
+        return canManageUser(u);
+      }))}
       {loading && (
         <div className="overflow-x-auto mt-4 border-2 border-gray-300 rounded-xl p-6">
           <table className="equipment-table">
@@ -226,13 +286,27 @@ const UserManage = () => {
       </thead>
       <tbody>
               {Array.isArray(users) && users
-                .filter(u => user && (u._id !== user._id && u._id !== user.id))
-                .filter(u => u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .filter(u => user && (u._id !== user._id && u._id !== user.id)) // Exclude current user
+                .filter(u => u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase())) // Search filter
+                .filter(u => {
+                  // If current user is Admin, completely hide Super Admin users
+                  if (isAdmin() && isUserSuperAdmin(u.role)) {
+                    console.log('Admin user - Hiding Super Admin:', u.name);
+                    return false; // Hide Super Admin users from Admin
+                  }
+                  // Admin users can see: Regular users + Other Admin users
+                  if (isAdmin()) {
+                    const canSee = !isUserSuperAdmin(u.role);
+                    console.log('Admin user - Can see user:', u.name, 'Role:', getRoleName(u.role), 'Can see:', canSee);
+                    return canSee;
+                  }
+                  // Otherwise, use the normal permission check
+                  return canManageUser(u);
+                }) // Permission filter - only show users current user can manage
                 .map((u) => {
-                  const canEdit = true;
-            return (
-
-              
+                  const canEdit = canManageUser(u);
+                  
+                  return (
                     <tr key={u._id}>
                       <td>
                         {u.profilePic ? (
@@ -247,77 +321,72 @@ const UserManage = () => {
                       </td>
                       <td>{u.name}</td>
                       <td>{u.email}</td>
-                      
-                        {/* {editRole[u._id] !== undefined ? (
-                          <Select
-                            isMulti
-                            options={projectOptions}
-                            value={projectOptions.filter(opt =>
-                              (editProjects[u._id] || u.features || []).includes(opt.value)
-                            )}
-                            onChange={selectedOptions => {
-                              const selected = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
-                              setEditProjects(prev => ({ ...prev, [u._id]: selected }));
-                            }}
-                            placeholder="Select projects"
-                            closeMenuOnSelect={false}
-                            styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
-                          />
-                        ) : (
-                          <span>
-                            {u.features && u.features.length > 0
-                              ? projects
-                                  .filter(p => u.features.includes(p._id))
-                                  .map(p => p.projectName)
-                                  .join(', ')
-                              : <span style={{ color: '#aaa' }}>Select projects</span>
-                            }
-                          </span>
-                        )} */}
-                
                       <td>
-                  {editRole[u._id] !== undefined ? (
-                    <select
-                      value={editRole[u._id]}
-                      onChange={e => handleRoleChange(u._id, e.target.value)}
-                      className="border rounded px-2 py-1"
-                    >
+                        {editRole[u._id] !== undefined ? (
+                          <select
+                            value={editRole[u._id]}
+                            onChange={e => handleRoleChange(u._id, e.target.value)}
+                            className="border rounded px-2 py-1"
+                          >
                             <option value='' disabled>Select new role</option>
-                            {roleOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  ) : (
-                          u.role === NEO_EXPERT_ROLE_ID ? 'Neo Expert' : u.role === NEO_EXECUTIVE_ROLE_ID ? 'Neo Executive' : u.role === SUPER_ADMIN_ROLE_ID ? 'Admin' : 'Admin'
-                  )}
-                </td>
+                            {roles.map(option => (
+                              <option key={option._id} value={option._id}>{option.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          getRoleName(u.role)
+                        )}
+                      </td>
                       <td>
-                      <button className="view-btn gap-2" title="View" onClick={() => setViewUserId(u._id)}>
+                        <button className="view-btn gap-2" title="View" onClick={() => setViewUserId(u._id)}>
                           <FaEye />
                         </button>
                         {canEdit ? (
                           editRole[u._id] !== undefined ? (
                             <button className="save-btn " title="Save" onClick={() => handleUpdateUser(u._id)} disabled={!editRole[u._id]}>
                               <FaSave />
-                  </button>
+                            </button>
                           ) : (
                             <button className="edit-btn ml-2" title="Edit" onClick={() => setEditRole({ ...editRole, [u._id]: u.role })}>
                               <FaEdit />
                             </button>
                           )
                         ) : (
-                          <button className="edit-btn ml-2" disabled><FaEdit /></button>
+                          <button className="edit-btn ml-2" disabled title="No permission to edit">
+                            <FaEdit />
+                          </button>
                         )}
-                      
-                        <button className="delete-btn" title="Delete" onClick={() => handleDeleteUser(u._id)}>
+                        <button 
+                          className="delete-btn" 
+                          title="Delete" 
+                          onClick={() => handleDeleteUser(u._id)}
+                          disabled={!canEdit}
+                        >
                           <FaTrash />
                         </button>
-                </td>
-              </tr>
-            );
-          })}
+                      </td>
+                    </tr>
+                  );
+                })}
       </tbody>
     </table>
+    
+    {/* Show message when no users are visible due to permissions */}
+    {!loading && Array.isArray(users) && users.filter(u => {
+      // If current user is Admin, completely hide Super Admin users
+      if (isAdmin() && isUserSuperAdmin(u.role)) {
+        return false; // Hide Super Admin users from Admin
+      }
+      // Otherwise, use the normal permission check
+      return canManageUser(u);
+    }).length === 0 && (
+      <div className="text-center py-8 text-gray-500">
+        <p>No users available to manage with your current permissions.</p>
+        {isAdmin() && (
+          <p className="text-sm mt-2">As an Admin, you can see and manage all users except Super Admin users.</p>
+        )}
+      </div>
+    )}
   </div>
         {/* Print all projects after the table */}
        

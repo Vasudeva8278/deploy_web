@@ -18,7 +18,7 @@ const ProfileSettings = ({ onClose }) => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState([]);
-  const { user, refreshUser } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   const [formData, setFormData] = useState({
     userId: "",
@@ -192,48 +192,6 @@ const ProfileSettings = ({ onClose }) => {
           toast.success("Profile and picture saved successfully!");
         } else {
           toast.success("Profile saved successfully!");
-        }
-        
-        // Refresh user data to update both ProfileSettings and ProfileHeader
-        await refreshUser();
-        console.log("User data refreshed after profile update");
-        
-        // Also refresh the profile data in this component
-        const userId = user._id || user.id;
-        if (userId) {
-          try {
-            toast.info("Refreshing profile data...");
-            const updatedProfile = await fetchProfile(userId);
-            console.log("Refreshed profile data:", updatedProfile);
-            
-            // Update the form data with the refreshed profile
-            let formattedDate = "";
-            if (updatedProfile.dateOfBirth) {
-              formattedDate = new Date(updatedProfile.dateOfBirth)
-                .toISOString()
-                .split("T")[0];
-            }
-
-            if (updatedProfile.profilePic) {
-              setImagePreview(updatedProfile.profilePic);
-            }
-
-            setFormData({
-              userId: updatedProfile.userId || userId,
-              firstName: updatedProfile.firstName || user.name || "",
-              lastName: updatedProfile.lastName || "",
-              email: updatedProfile.email || user.email || "",
-              mobile: updatedProfile.mobile || "",
-              gender: updatedProfile.gender || "",
-              dateOfBirth: formattedDate,
-              address: updatedProfile.address || "",
-            });
-            
-            toast.success("Profile data refreshed successfully!");
-          } catch (error) {
-            console.error("Error refreshing profile data:", error);
-            toast.error("Failed to refresh profile data");
-          }
         }
       } else {
         toast.error("Failed to save profile.");
