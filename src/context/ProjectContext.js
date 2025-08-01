@@ -1,5 +1,5 @@
 // src/context/ProjectContext.js
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useRef } from "react";
 import {
   createProject,
   getAllProjects,
@@ -13,17 +13,36 @@ export const ProjectContext = createContext();
 // Create a provider component
 export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await getAllProjects();
-        setProjects(response.projects || []);
+        // Create new AbortController for this request
+        abortControllerRef.current = new AbortController();
+        
+        const response = await getAllProjects(abortControllerRef.current.signal);
+        // The API returns projects directly, not wrapped in a 'projects' property
+        setProjects(response || []);
       } catch (error) {
+        // Check if it's an abort error
+        if (error.name === 'AbortError') {
+          console.log('ProjectContext request was aborted');
+          return;
+        }
+        
         console.log("Failed to fetch projects", error);
+        setProjects([]); // Set empty array on error
       }
     };
     fetchProjects();
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   const addProject = async (newProject) => {

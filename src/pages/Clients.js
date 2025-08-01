@@ -1,9 +1,9 @@
 import React, { useContext, useEffect, useState } from "react";
 // import SearchHeader from "../components/SearchHeader";
-import { getAllClients } from "../services/clientsApi";
+import { getAllClients, deleteClient } from "../services/clientsApi";
 // import folder from "../assets/folder.jpg";
 import { useNavigate } from "react-router-dom";
-import { FaUserPlus, FaFolder, FaEllipsisV, FaSearch } from "react-icons/fa";
+import { FaUserPlus, FaFolder, FaEllipsisV, FaSearch, FaTrash } from "react-icons/fa";
 import { ProjectContext } from "../context/ProjectContext";
 import NeoModal from "../components/NeoModal";
 import { motion } from "framer-motion";
@@ -15,6 +15,8 @@ const Clients = () => {
   const [selectedProject, setSelectedProject] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingClientId, setDeletingClientId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const navigate = useNavigate();
   const { projects } = useContext(ProjectContext);
 
@@ -41,6 +43,28 @@ const Clients = () => {
     navigate('/viewAllHighlights', {
       state: { project: projectData },
     });
+  };
+
+  const handleDeleteClient = async (clientId, clientName, event) => {
+    event.stopPropagation(); // Prevent card click when clicking delete button
+    
+    if (!window.confirm(`Are you sure you want to delete client "${clientName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingClientId(clientId);
+    setDeleteError(null);
+
+    try {
+      await deleteClient(clientId);
+      // Remove the client from the local state
+      setClients(prevClients => prevClients.filter(client => client._id !== clientId));
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      setDeleteError(error.message || 'Failed to delete client. Please try again.');
+    } finally {
+      setDeletingClientId(null);
+    }
   };
 
   const filteredClients = clients.filter(client =>
@@ -105,9 +129,23 @@ const Clients = () => {
                       <div className="p-3 bg-blue-50 rounded-lg">
                         <FaFolder className="h-6 w-6 text-blue-500" />
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <FaEllipsisV />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
+                          onClick={(e) => handleDeleteClient(client._id, client.name, e)}
+                          disabled={deletingClientId === client._id}
+                          title="Delete client"
+                        >
+                          {deletingClientId === client._id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                          ) : (
+                            <FaTrash className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button className="text-gray-400 hover:text-gray-600">
+                          <FaEllipsisV />
+                        </button>
+                      </div>
                     </div>
                     <h3 className="mt-4 text-lg font-medium text-gray-900">{client.name}</h3>
                     <div className="flex items-center text-sm text-gray-500">
@@ -174,8 +212,19 @@ const Clients = () => {
           </div>
         </div>
       </NeoModal>
+      {deleteError && (
+        <div className="mx-6 mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center">
+            <div className="text-red-500 text-xl mr-2">⚠️</div>
+            <div>
+              <h4 className="text-sm font-medium text-red-800">Delete Failed</h4>
+              <p className="text-sm text-red-600">{deleteError}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
 
-export default Clients;
+export default Clients; 

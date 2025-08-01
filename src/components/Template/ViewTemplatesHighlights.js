@@ -54,7 +54,7 @@ const ViewTemplatesHighlights = () => {
 
   const handleAlertClose = () => {
     setIsAlertOpen(false);
-    navigate(`/projects/${projectData._id}`, {
+    navigate(`/clients`, {
       state: { data: projectData },
     });
   };
@@ -64,42 +64,123 @@ const ViewTemplatesHighlights = () => {
       setError("Please enter name for document");
       return;
     }
+    
+    if (!selectedTemplates || selectedTemplates.length === 0) {
+      setTempError("Please select atleast 1 template");
+      return;
+    }
+    
+    // Validate project data
+    if (!projectData || !projectData._id) {
+      setError("Project data is missing. Please try again.");
+      return;
+    }
+    
     const updatedSelectedTemplates = templatesData
       .filter((template) => selectedTemplates.includes(template._id)) // Filter only selected templates
-      .map((template) => ({
-        ...template,
-        docName: documentName,
-        highlights: template.highlights.map((highlight) => {
+      .map((template) => {
+        // Validate template structure
+        if (!template._id || !template.highlights || !Array.isArray(template.highlights)) {
+          console.error("Invalid template structure:", template);
+          throw new Error(`Template ${template.fileName || template._id} has invalid structure`);
+        }
+        
+        // Process highlights with proper validation
+        const processedHighlights = template.highlights.map((highlight) => {
+          // Validate highlight structure
+          if (!highlight || !highlight.label) {
+            console.error("Invalid highlight structure:", highlight);
+            throw new Error(`Highlight in template ${template.fileName} has invalid structure`);
+          }
+          
+          // Update text if user has provided a value
           if (highlights[highlight.label]) {
-            return { ...highlight, text: highlights[highlight.label].text }; // Update text for matching labels
+            return { 
+              ...highlight, 
+              text: highlights[highlight.label].text || highlight.text || "" 
+            };
           }
           return highlight;
-        }),
-      }));
+        });
+        
+        return {
+          _id: template._id,
+          docName: documentName,
+          highlights: processedHighlights
+        };
+      });
 
     console.log("Updated Selected Templates: ", updatedSelectedTemplates);
+    
     if (!updatedSelectedTemplates || updatedSelectedTemplates.length === 0) {
       setTempError("Please select atleast 1 template");
       return;
     }
+    
     try {
-      const result = await createDocsMultipleTemplates(
-        updatedSelectedTemplates
-      );
+      // Create the proper request structure
+      const requestData = {
+        templates: updatedSelectedTemplates,
+        documentName: documentName,
+        projectId: projectData._id,
+        clientId: client?._id || null,
+        clientName: client?.name || null
+      };
+      
+      console.log("Sending request data:", requestData);
+      
+      const result = await createDocsMultipleTemplates(requestData);
       console.log("Backend Response: ", result);
-      if (result.success) {
-        alert(result.message);
-        navigate(`/projects/${projectData._id}`, {
+      
+      // Check if the operation was successful
+      if (result && (result.success || result.message)) {
+        // Success - show success message and navigate
+        const successMessage = result.message || "Document created successfully!";
+        alert(successMessage);
+        navigate(`/clients`, {
           state: { data: projectData },
         });
-      }
-    } catch (error) {
-      console.error("Error updating templates: ", error);
-      if (error?.response?.status === 400) {
-        alert(error?.response?.data?.message);
         return;
       }
-      alert("Failed to update templates. Please try again.");
+      
+      // If we reach here, the response was unexpected but not necessarily an error
+      console.log("Unexpected response format:", result);
+      alert("Document creation completed successfully!");
+      navigate(`/clients`, {
+        state: { data: projectData },
+      });
+      
+    } catch (error) {
+      console.error("Error updating templates: ", error);
+      
+      // Handle specific error cases
+      if (error?.response?.status === 400) {
+        const errorMessage = error?.response?.data?.message || "Invalid data provided";
+        console.error("400 Error details:", error?.response?.data);
+        alert(errorMessage);
+        return;
+      }
+      
+      if (error?.response?.status === 500) {
+        alert("Server error occurred. Please try again later.");
+        return;
+      }
+      
+      // Handle network errors
+      if (error?.code === 'ERR_NETWORK' || error?.message?.includes('Network Error')) {
+        alert("Network error. Please check your connection and try again.");
+        return;
+      }
+      
+      // Handle validation errors
+      if (error?.message?.includes('Invalid template structure') || error?.message?.includes('Invalid highlight structure')) {
+        alert(error.message);
+        return;
+      }
+      
+      // Only show generic error for unexpected errors
+      console.error("Unexpected error:", error);
+      alert("An unexpected error occurred. Please try again.");
     }
   };
 

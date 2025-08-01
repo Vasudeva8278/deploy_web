@@ -34,35 +34,41 @@ const Navigation = () => {
   const [showName, setShowName] = useState(false);
   const [roleFeatures, setRoleFeatures] = useState(null);
   const [featuresLoading, setFeaturesLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
+  const [roles, setRoles] = useState([]);
 
-  const EXECUTIVE_ROLE_ID = "68621597db15fbb9bbd2f838";
-  const EXPERT_ROLE_ID = "68621581db15fbb9bbd2f836";
-  const ADMIN_ROLE_ID = "68621571db15fbb9bbd2f834";
-  const SUPERADMIN_ROLE_ID = "6870a1c2f0884e1560f8dadf";
-  const isExecutive = user && user.role === EXECUTIVE_ROLE_ID;
-  const isExpert = user && user.role === EXPERT_ROLE_ID;
-  const isAdmin = user && user.role === ADMIN_ROLE_ID;
-  const isSuperAdmin = user && user.role === SUPERADMIN_ROLE_ID;
-
-  // Fetch role features for the logged-in user
+  // Fetch all roles and user's specific role
   useEffect(() => {
-    const fetchRoleFeatures = async () => {
+    const fetchRolesAndUserRole = async () => {
       if (user && user.role) {
         try {
           const API_URL = process.env.REACT_APP_API_URL || "http://13.200.200.137:7000";
-          const res = await axios.get(`${API_URL}/api/roles/${user.role}`);
-          setRoleFeatures(res.data.features || []);
+          
+          // Fetch all roles
+          const rolesResponse = await axios.get(`${API_URL}/api/roles`);
+          setRoles(rolesResponse.data);
+          
+          // Fetch user's specific role
+          const userRoleResponse = await axios.get(`${API_URL}/api/roles/${user.role}`);
+          setUserRole(userRoleResponse.data);
+          setRoleFeatures(userRoleResponse.data.features || []);
+          
+          console.log('User role data:', userRoleResponse.data);
+          console.log('User role features:', userRoleResponse.data.features);
         } catch (error) {
+          console.error('Error fetching roles:', error);
           setRoleFeatures([]);
+          setUserRole(null);
         } finally {
           setFeaturesLoading(false);
         }
       } else {
         setRoleFeatures([]);
+        setUserRole(null);
         setFeaturesLoading(false);
       }
     };
-    fetchRoleFeatures();
+    fetchRolesAndUserRole();
   }, [user]);
 
   useEffect(() => {
@@ -88,11 +94,6 @@ const Navigation = () => {
     }
     return location.pathname.startsWith('/NeoDocements');
   };
-
-
-
-  
-  
 
   const isNeoTemplatesActive = () => {
     const hash = location.hash || '';
@@ -185,15 +186,35 @@ const Navigation = () => {
     });
   };
 
+  // Helper function to check if user has a specific feature
+  const hasFeature = (featureKey) => {
+    // Admin users have access to all features
+    if (isAdminOrSuperAdmin()) {
+      return true;
+    }
+    return roleFeatures && roleFeatures.includes(featureKey);
+  };
+
+  // Helper function to check if user is Admin or Super Admin
+  const isAdminOrSuperAdmin = () => {
+    if (!userRole) return false;
+    const roleName = userRole.name.toLowerCase();
+    return roleName.includes('admin') || roleName.includes('super');
+  };
+
   // Helper function to render navigation items
-  const NavItem = ({ to, onClick, icon: Icon, label, projectSpecific = false, projectId = null, featureKey, active }) => {
+  const NavItem = ({ to, onClick, icon: Icon, label, projectSpecific = false, projectId = null, featureKey, active, adminOverride = false }) => {
     const isActiveNav = typeof active === 'boolean'
       ? active
       : (projectSpecific
           ? isProjectActive(projectId)
           : isActive(to) || (to === "/projects" && location.pathname.startsWith("/projects/") && !projectId));
-    // Only render if featureKey is not set or is present in roleFeatures
-    if (featureKey && (!roleFeatures || !roleFeatures.includes(featureKey))) return null;
+    
+    // Admin users can see all navigation items, or check if user has feature
+    const shouldShow = !featureKey || hasFeature(featureKey) || (adminOverride && isAdminOrSuperAdmin()) || isAdminOrSuperAdmin();
+    
+    // Only render if user has the feature or is admin
+    if (!shouldShow) return null;
 
     return (
       <li className="w-full flex justify-center">
@@ -245,57 +266,17 @@ const Navigation = () => {
       {/* Main Navigation Items */}
       <nav className={`flex flex-col items-center flex-1 ${isMobile ? 'py-2 space-y-2' : 'py-4 space-y-4'}`}>
         <ul className={`w-full flex flex-col items-center ${isMobile ? 'space-y-1' : 'space-y-2'}`}>
-          {isSuperAdmin ? (
-            <>
-              <NavItem to="/dashboard" icon={GoHome} label="Home" />
-              <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" />
-              <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" />
-              <NavItem to="/NeoTemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" />
-              <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" />
-              <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" />
-              <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" />
-             
-              {/* Add any other routes/actions you want SuperAdmin to see */}
-            </>
-          ) : isAdmin ? (
-            <>
-              <NavItem to="/dashboard" icon={GoHome} label="Home" featureKey={null} />
-              <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" featureKey="projects" />
-              <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" featureKey="Clients" />
-              <NavItem to="/Neotemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
-              <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
-              <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" featureKey="Users" />
-              <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" featureKey={null} />
-            </>
-          ) : isExecutive ? (
-            <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
-          ) : isExpert ? (
-            <>
-              <NavItem to="/NeoTemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
-              <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
-            </>
-          ) : (
-            <>
-              <NavItem to="/dashboard" icon={GoHome} label="Home" featureKey={null} />
-              <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" featureKey="projects" />
-              <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" featureKey="Clients" />
-              <NavItem to="/NeoTemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
-              <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
-              <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" featureKey="Users" />
-              <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" featureKey={null} />
-            </>
-          )}
+          {/* Navigation based on role features - Ordered as requested */}
+          <NavItem to="/dashboard" icon={FaHome} label="Dashboard" />
+          <NavItem to="/projects" onClick={handleProjects} icon={FaRegFolderOpen} label="Projects" featureKey="Projects" />
+          <NavItem to="/clients" onClick={handleClients} icon={HiOutlineUserGroup} label="Clients" featureKey="Clients" />
+          <NavItem to="/NeoTemplates" onClick={handleTemplates} icon={RiLayout4Line} label="Templates" featureKey="Templates" />
+          <NavItem to="/NeoDocements" onClick={handleDocuments} icon={FaFile} label="Documents" featureKey="Documents" />
+          <NavItem to="/UserManage" onClick={handleUserManage} icon={BsPeopleFill} label="Users" featureKey="Users" />
+          <NavItem to="/RoleFeatureManagement" onClick={handleRoleFeatureManagement} icon={FaUser} label="Roles" featureKey="Roles" />
 
-          {/* Admin/SuperAdmin specific features */}
-          {user && user?.features?.includes("viewDashboard") && (
-            <NavItem to="/dashboard" icon={FaHome} label="Dashboard" />
-          )}
-          {user && user?.features?.includes("viewOrganizations") && (
-            <NavItem to="/organizations" icon={FaBuilding} label="Organizations" />
-          )}
-          {user && user?.features?.includes("viewProfile") && (
-            <NavItem to="/profile" icon={FaUser} label="Profile" />
-          )}
+          {/* Additional features based on user's role features */}
+         
         </ul>
         
       </nav>

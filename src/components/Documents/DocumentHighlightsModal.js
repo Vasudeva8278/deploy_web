@@ -282,23 +282,25 @@ const handleResizeMouseUp = async () => {
 
   if (!isOpen || !highlight) return null;
   return (
-    <div className="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50 overflow-auto">
-    <div className="bg-white rounded-lg shadow-lg w-auto max-w-[90%] min-w-[700px] max-h-[80%] overflow-auto">
-      <div className="bg-gray-300 p-2 rounded-t-lg">
+    <div className="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50 overflow-auto ">
+    <div className="bg-white rounded-lg shadow-lg w-auto max-w-[95%] min-w-[800px] max-h-[75%] overflow-auto mt-5">
+      <div className="bg-gray-300 p-2 rounded-t-lg mt-6">
         <h2 className="text-lg font-medium text-gray-800">{highlight?.label}</h2>
       </div>
-      <div className="p-4">
+      <div className="p-2 mt-4">
         {highlight?.type === 'image' && (
           <>
            {!newImage && <div className="mt-4">
-              <label htmlFor="originalText" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="originalText" className="block text-sm font-medium text-gray-700 mb-2">
                 Original Image:
               </label>
-              <div
-                id="originalText"
-                dangerouslySetInnerHTML={{ __html: highlight?.text }}
-                className="mt-2 w-64 h-64 object-cover"
-              />
+              <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
+                <div
+                  id="originalText"
+                  dangerouslySetInnerHTML={{ __html: highlight?.text }}
+                  className="w-96 h-96 object-cover mx-auto flex items-center justify-center"
+                />
+              </div>
             </div>}
             <div className="image-uploader">
             {newImage && (
@@ -397,7 +399,7 @@ const handleResizeMouseUp = async () => {
             </div>
             <div className="right-buttons text-right">
                   <button
-                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-transparent rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-transparent rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 mr-2"
                     onClick={cancelEditImage}
                   >
                     Cancel

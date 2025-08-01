@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import EditModal from "./EditModal";
+import EditModal from "./Template/EditModal";
 import {
 	PencilIcon,
 	TrashIcon,
@@ -9,44 +9,32 @@ import {
 	DotsHorizontalIcon,
 } from "@heroicons/react/solid";
 import { ArrowLeftIcon } from "@heroicons/react/outline";
-import table from "../../Assets/table.png";
-import image from "../../Assets/image.png";
-import NeoModal from "../NeoModal";
-import { getTemplatesById } from "../../services/templateApi";
+import table from "../Assets/table.png";
+import image from "../Assets/image.png";
+import NeoModal from "./NeoModal";
+import { getTemplatesById } from "../services/templateApi";
 import {
 	deleteHighlight,
 	getImgLink,
 	saveOrUpdateHighlights,
 	saveTemplateContent,
 	uploadImg,
-} from "../../services/highlightsApi";
-import StyleComponents from "../StyleComponents";
-import LabelsComponent from "./LabelsComponent";
-import { getExistingLabelsInProject } from "../../services/projectApi";
+    
+} from "../services/highlightsApi";
+import StyleComponents from "./StyleComponents";
+import LabelsComponent from "./Template/LabelsComponent";
+import { getExistingLabelsInProject } from "../services/projectApi";
 
 // Suppress Chrome extension errors
 window.addEventListener('error', function(e) {
-    if (e.message.includes('Timeout') && 
+    if (e.message.includes('Client has been destroyed') && 
         e.filename.includes('chrome-extension')) {
         e.preventDefault();
         return false;
     }
 });
 
-// Debounce function for performance optimization
-const debounce = (func, wait) => {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-};
-
-function DocxToTextConverter() {
+function HtmlParseTool() {
 	const navigate = useNavigate();
 	const { id } = useParams();
 	const [conversionStatus, setConversionStatus] = useState("");
@@ -86,29 +74,24 @@ function DocxToTextConverter() {
 	const [isAlertOpen, setIsAlertOpen] = useState(false);
 	const [alertText, setAlertText] = useState("");
 	const [isResetAll, setIsResetAll] = useState(false);
-	const location = useLocation();
+	const location = useLocation(); // Gives you access to the current URL including the query string
 	const queryParams = new URLSearchParams(location.search);
 	const projectId = queryParams.get("projectId");
-	
-	// Log the URL and projectId for debugging
-	console.log('Current URL:', location.search);
-	console.log('Extracted projectId:', projectId);
-	
 	const [editTemplate, setEditTemplate] = useState(true);
 	const [rightSectionVisible, setRightSectionVisible] = useState(false);
 	const [isContentTouched, setIsContentTouched] = useState(false);
-	const [existingLabels, setExistingLabels] = useState([]);
+	const [existingLabels, setExistingLabels] = useState([]); // Store fetched labels
+	const [isAutoDetecting, setIsAutoDetecting] = useState(false);
+	const [isConfirmingAutoDetect, setIsConfirmingAutoDetect] = useState(false);
+	const [tableCounter, setTableCounter] = useState(1);
+	const [imageCounter, setImageCounter] = useState(1);
+	const [textCounter, setTextCounter] = useState(1);
+	const [isTextPatternDetecting, setIsTextPatternDetecting] = useState(false);
+	const [inlineEditId, setInlineEditId] = useState(null);
+	const [inlineEditValue, setInlineEditValue] = useState("");
 
-	// Memoized fetchLabels function with error handling
-	const fetchLabels = useCallback(async (projectId) => {
+	const fetchLabels = async (projectId) => {
 		console.log(projectId);
-		
-		// Check if projectId is null or undefined
-		if (!projectId) {
-			console.warn('ProjectId is null or undefined, skipping fetchLabels');
-			return;
-		}
-		
 		try {
 			const result = await getExistingLabelsInProject(projectId);
 
@@ -123,58 +106,39 @@ function DocxToTextConverter() {
 			console.log("Existing Labels: ", result);
 		} catch (error) {
 			console.error("Error updating templates: ", error);
-			// Show user-friendly error message
-			setIsAlertOpen(true);
-			setAlertText("Failed to load existing labels. Please try refreshing the page.");
 		}
-	}, []);
+	};
 
-	// Memoized fetchDocument function with error handling
-	const fetchDocument = useCallback(async () => {
-		if (!id) return;
-		
-		try {
-			setIsLoading(true);
+	useEffect(() => {
+		const fetchDocument = async () => {
+			if (id) {
+				try {
 					const response = await getTemplatesById(projectId, id);
 					const result = response;
 					setTemplateId(result._id);
 					setConversionStatus(result.content);
-			setHighlights(result.highlights || []);
+					setHighlights(result.highlights);
 					setFileName(result.fileName);
-			setProject(result.projectId);
+					setProject(result.projectId); // to get complete project Object to pass in state.
 				} catch (error) {
 					console.error("Failed to fetch document", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to load document. Please check your connection and try again.");
-		} finally {
-			setIsLoading(false);
 				}
-	}, [id, projectId]);
+			}
+		};
 
-	useEffect(() => {
 		fetchDocument();
 		fetchLabels(projectId);
-	}, [fetchDocument, fetchLabels, projectId]);
+	}, [id]);
 
-	// Debounced content change handler
-	const handleContentChange = useCallback(
-		debounce(() => {
+	const handleContentChange = () => {
 		setIsContentTouched(true);
-		}, 300),
-		[]
-	);
-
+	};
 	const handleBack = () => {
-		try {
+		//console.log(projectId);
 		if (projectId) {
 			navigate(`/projects/${projectId}`, { state: { data: project } });
 		} else {
-			navigate("/Neo");
-			}
-		} catch (error) {
-			console.error("Navigation error:", error);
-			// Fallback navigation
-			window.history.back();
+			navigate("/NeoTemplates");
 		}
 	};
 
@@ -183,17 +147,12 @@ function DocxToTextConverter() {
 	};
 
 	const createHighlightSpan = (elementType, id, content) => {
-		try {
 		const ele = document.createElement(elementType);
 		ele.id = id;
 		ele.setAttribute("data-highlight-id", id);
 		ele.classList.add("highlight");
 		ele.innerHTML = content;
 		return ele;
-		} catch (error) {
-			console.error("Error creating highlight span:", error);
-			return null;
-		}
 	};
 
 	const generateHighlightId = () => {
@@ -204,7 +163,6 @@ function DocxToTextConverter() {
 	const handleImageHighlighting = async (imgData) => {
 		if (!imgData) return;
 
-		try {
 		// Check if the parent element is a div and has data-highlight-id
 		const parentElement = imgData.parentNode;
 		console.log(parentElement);
@@ -239,12 +197,6 @@ function DocxToTextConverter() {
 				highlightId,
 				imgData.outerHTML
 			);
-				
-				if (!div) {
-					console.error("Failed to create highlight span");
-					return null;
-				}
-				
 			div.style.border = "1px solid blue";
 			div.style.boxSizing = "border-box";
 			div.style.display = "inline-block";
@@ -271,18 +223,11 @@ function DocxToTextConverter() {
 			}
 			console.log(parentElement.innerHTML);
 			return parentElement?.innerHTML;
-			}
-		} catch (error) {
-			console.error("Error in handleImageHighlighting:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to highlight image. Please try again.");
-			return null;
 		}
 	};
 
 	const handleTextHighlight = async () => {
 		if (addLabel) {
-			try {
 			if (isTextSelectedRef.current) {
 				setIsAlertOpen(true);
 				setAlertText(
@@ -340,18 +285,13 @@ function DocxToTextConverter() {
 			isTextSelectedRef.current = true;
 			selection.removeAllRanges();
 			setSelection(selection);
-			} catch (error) {
-				console.error("Error in handleTextHighlight:", error);
-				setIsAlertOpen(true);
-				setAlertText("Failed to highlight text. Please try again.");
 		}
-		}
+		// console.log("new Highlight", newHighlight);
 	};
 
 	const handleTableHighlighting = (tableData) => {
 		if (!tableData) return;
 
-		try {
 		const parentTag = tableData.parentNode;
 		console.log(parentTag);
 		if (
@@ -386,12 +326,6 @@ function DocxToTextConverter() {
 			highlightId,
 			tableData.outerHTML
 		);
-			
-			if (!section) {
-				console.error("Failed to create table highlight section");
-				return null;
-			}
-			
 		section.style.border = "1px solid blue";
 		section.style.boxSizing = "border-box";
 		section.style.display = "inline-block";
@@ -411,16 +345,9 @@ function DocxToTextConverter() {
 			parentElement.replaceChild(section, tableData);
 		}
 		return parentElement?.innerHTML;
-		} catch (error) {
-			console.error("Error in handleTableHighlighting:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to highlight table. Please try again.");
-			return null;
-		}
 	};
 
 	const addId = async (e) => {
-		try {
 		//console.log(e.target.tagName, "-------------" ,addImage,addTable );
 		if (e.target.tagName === "IMG" && addImage) {
 			if (isImageSelectedRef.current) {
@@ -469,18 +396,11 @@ function DocxToTextConverter() {
 						document.getElementById("neoDocView").innerHTML;
 				}
 			}
-			}
-		} catch (error) {
-			console.error("Error in addId:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to process selection. Please try again.");
 		}
 	};
 
 	useEffect(() => {
-		if (!contentRef.current) return;
-		
-		try {
+		if (contentRef.current) {
 			const contentDiv = contentRef.current;
 			const parser = new DOMParser();
 			const doc = parser.parseFromString(conversionStatus, "text/html");
@@ -519,9 +439,7 @@ function DocxToTextConverter() {
 					e.target.tagName === "SPAN"
 				) {
 					const table = findParentTable(e.target);
-					if (table) {
 					table.style.cursor = "cell";
-					}
 				}
 				if (e.target.tagName === "IMG") {
 					e.target.style.cursor = "cell";
@@ -530,9 +448,7 @@ function DocxToTextConverter() {
 			const removeHighlight = (e) => {
 				if (e.target.tagName === "TD") {
 					const table = findParentTable(e.target);
-					if (table) {
 					table.style.cursor = "";
-					}
 				}
 				if (e.target.tagName === "IMG") {
 					e.target.style.cursor = "";
@@ -590,10 +506,6 @@ function DocxToTextConverter() {
 					element.removeEventListener("click", addId);
 				});
 			};
-		} catch (error) {
-			console.error("Error in useEffect:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to initialize document. Please refresh the page.");
 		}
 	}, [conversionStatus, addImage, addTable, addLabel]);
 
@@ -713,6 +625,10 @@ function DocxToTextConverter() {
 		isTableSelectedRef.current = false;
 		isImageSelectedRef.current = false;
 		isTextSelectedRef.current = false;
+		// Reset counters when switching modes
+		setTableCounter(1);
+		setImageCounter(1);
+		setTextCounter(1);
 	};
 
 	const saveLabel = () => {
@@ -802,7 +718,59 @@ function DocxToTextConverter() {
 			setEditHighlightId(id);
 			setEditInitialText(highlight.text);
 			setIsModalOpen(true);
+			
+			// Add hover effect to the corresponding highlight in the document
+			addHoverEffectToHighlight(id);
 		}
+	};
+
+	// Function to add hover effect to a specific highlight
+	const addHoverEffectToHighlight = (highlightId) => {
+		if (!contentRef.current) return;
+		
+		// Remove any existing hover effects
+		removeAllHoverEffects();
+		
+		// Find the highlight element in the document
+		const highlightElement = contentRef.current.querySelector(`[data-highlight-id="${highlightId}"]`);
+		if (highlightElement) {
+			// Add hover effect styles
+			highlightElement.style.backgroundColor = "#fef08a";
+			highlightElement.style.border = "3px solid #eab308";
+			highlightElement.style.boxShadow = "0 0 10px rgba(234, 179, 8, 0.5)";
+			highlightElement.style.transform = "scale(1.02)";
+			highlightElement.style.transition = "all 0.3s ease";
+			highlightElement.style.zIndex = "1000";
+			highlightElement.style.position = "relative";
+			
+			// Add a pulsing animation for editing mode
+			if (isModalOpen) {
+				highlightElement.style.animation = "pulse 2s infinite";
+			}
+			
+			// Scroll to the highlight if it's not visible
+			highlightElement.scrollIntoView({ 
+				behavior: 'smooth', 
+				block: 'center' 
+			});
+		}
+	};
+
+	// Function to remove all hover effects
+	const removeAllHoverEffects = () => {
+		if (!contentRef.current) return;
+		
+		const allHighlights = contentRef.current.querySelectorAll('.highlight');
+		allHighlights.forEach(element => {
+			element.style.backgroundColor = "";
+			element.style.border = "";
+			element.style.boxShadow = "";
+			element.style.transform = "";
+			element.style.transition = "";
+			element.style.zIndex = "";
+			element.style.position = "";
+			element.style.animation = "";
+		});
 	};
 
 	const handleSaveHighlight = (newText, label) => {
@@ -813,6 +781,8 @@ function DocxToTextConverter() {
 		);
 
 		setHighlights(updatedHighlights);
+		
+		// Update the document content based on highlight type
 		if (editHighlight.type === "text") {
 			const spans = contentRef.current.querySelectorAll(
 				`[data-highlight-id="${editHighlightId}"]`
@@ -830,27 +800,33 @@ function DocxToTextConverter() {
 			);
 
 			if (sections[0] && sections[0].parentNode) {
-				//console.log(newText)
 				sections[0].innerHTML = newText;
-				//sections[0].append(newText);
 			}
 		}
-		if (editHighlight.type === "image") {
-			//console.log(newText);
 
+		if (editHighlight.type === "image") {
 			const div = contentRef.current.querySelectorAll(
 				`[data-highlight-id="${editHighlightId}"]`
 			);
 
 			if (div[0] && div[0].parentNode) {
-				// console.log(newText)
 				div[0].innerHTML = newText;
-				//sections[0].append(newText);
 			}
 		}
 
-		// console.log(updatedHighlights);
-		saveHighlights(updatedHighlights, contentRef.current.innerHTML);
+		// Update the conversion status with the new content
+		const updatedContent = contentRef.current.innerHTML;
+		setConversionStatus(updatedContent);
+
+		// Save highlights with the updated content
+		saveHighlights(updatedHighlights, updatedContent);
+		
+		// Ensure the changes are properly reflected
+		ensureHighlightsReflected();
+		
+		// Remove hover effects when editing is complete
+		removeAllHoverEffects();
+		
 		setEditHighlight("");
 		setEditInitialText("");
 		setAddLabel(false);
@@ -1014,13 +990,6 @@ function DocxToTextConverter() {
 	const saveHighlights = async (updatedHighlights, content) => {
 		try {
 			setIsLoading(true);
-			
-			// Add timeout to prevent hanging requests
-			const timeoutPromise = new Promise((_, reject) => {
-				setTimeout(() => reject(new Error('Request timeout')), 30000); // 30 second timeout
-			});
-			
-			const savePromise = (async () => {
 			const updatedObj = {
 				highlights: updatedHighlights,
 				content,
@@ -1034,6 +1003,12 @@ function DocxToTextConverter() {
 			if (response) {
 				setIsLoading(false);
 				setConversionStatus(content);
+				
+				// Update the document content to reflect all changes
+				if (contentRef.current) {
+					contentRef.current.innerHTML = content;
+				}
+				
 				setNewHighlight({
 					id: "",
 					text: "",
@@ -1044,81 +1019,25 @@ function DocxToTextConverter() {
 				});
 				setSearchText("");
 			}
-				return response;
-			})();
-			
-			// Race between timeout and save operation
-			const result = await Promise.race([savePromise, timeoutPromise]);
-			
-			if (result) {
 			fetchLabels(projectId);
-			}
 		} catch (error) {
 			console.error("Failed to save highlights", error);
-			setIsLoading(false);
-			setIsAlertOpen(true);
-			setAlertText("Failed to save highlights. Please try again.");
 		}
 	};
 
-	// Cleanup function to prevent memory leaks
-	const cleanup = useCallback(() => {
-		// Clear any pending timeouts
-		if (window.highlightTimeout) {
-			clearTimeout(window.highlightTimeout);
-		}
-		
-		// Remove event listeners
-		if (contentRef.current) {
-			const contentDiv = contentRef.current;
-			const tables = contentDiv.querySelectorAll("table");
-			const images = contentDiv.querySelectorAll("img");
-			
-			[...tables, ...images].forEach((element) => {
-				element.removeEventListener("mouseover", () => {});
-				element.removeEventListener("mouseout", () => {});
-				element.removeEventListener("click", () => {});
-			});
-		}
-	}, []);
-
-	// Cleanup on unmount
-	useEffect(() => {
-		return () => {
-			cleanup();
-		};
-	}, [cleanup]);
-
-	// Optimized reloadContent function
-	const reloadContent = useCallback(async () => {
-		try {
-			setIsLoading(true);
+	const reloadContent = async () => {
 		const response = await getTemplatesById(projectId, id);
-			if (contentRef.current) {
 		contentRef.current.innerHTML = response.content;
-			}
 		setIsContentTouched(false);
-		} catch (error) {
-			console.error("Failed to reload content:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to reload content. Please refresh the page.");
-		} finally {
-			setIsLoading(false);
-		}
-	}, [projectId, id]);
+	};
 
-	// Optimized handleSaveTemplateContent function
-	const handleSaveTemplateContent = useCallback(async () => {
+	const handleSaveTemplateContent = async () => {
 		try {
-			const content = contentRef.current?.innerHTML;
-			if (!content) {
-				setIsAlertOpen(true);
-				setAlertText("No content to save.");
-				return;
-			}
-			
+			const content = contentRef.current.innerHTML;
 			setIsLoading(true);
-			const updatedObj = { content };
+			const updatedObj = {
+				content,
+			};
 			const response = await saveTemplateContent(templateId, updatedObj);
 
 			if (response) {
@@ -1136,12 +1055,9 @@ function DocxToTextConverter() {
 			}
 			setIsContentTouched(false);
 		} catch (error) {
-			console.error("Failed to save template content", error);
-			setIsLoading(false);
-			setIsAlertOpen(true);
-			setAlertText("Failed to save template content. Please try again.");
+			console.error("Failed to save highlights", error);
 		}
-	}, [templateId]);
+	};
 
 	const handleInputChange = (e) => {
 		const { name, value } = e.target;
@@ -1152,67 +1068,29 @@ function DocxToTextConverter() {
 		}));
 	};
 
-	// Optimized highlightText function with better performance
-	const highlightText = useCallback((text, query) => {
-		if (!text) return "";
-		
-		try {
-		let processedText = text;
-		
-			// Use a more efficient approach for highlighting patterns
-			const patterns = [
-				{ regex: /(_+)/g, class: "underscore-highlight" },
-				{ regex: /(-+)/g, class: "dash-highlight" },
-				{ regex: /(\.+)/g, class: "dot-highlight" },
-				{ regex: /(=+)/g, class: "equal-highlight" },
-				{ regex: /(\*+)/g, class: "asterisk-highlight" },
-				{ regex: /(#+)/g, class: "hash-highlight" },
-				{ regex: /(~+)/g, class: "tilde-highlight" },
-				{ regex: /( {3,})/g, class: "space-highlight" },
-				{ regex: /(\t+)/g, class: "tab-highlight" },
-				{ regex: /([_\-\*\.=#~]{3,})/g, class: "mixed-highlight" }
-			];
-			
-			// Process patterns in chunks to prevent blocking
-			const processPatternsInChunks = (text, patterns, chunkSize = 3) => {
-				let result = text;
-				for (let i = 0; i < patterns.length; i += chunkSize) {
-					const chunk = patterns.slice(i, i + chunkSize);
-					chunk.forEach(({ regex, class: className }) => {
-						result = result.replace(
-							regex,
-							`<span class="highlight ${className}">$1</span>`
-						);
-					});
-					// Allow other tasks to run
-					if (i + chunkSize < patterns.length) {
-						setTimeout(() => {}, 0);
-					}
-				}
-				return result;
-			};
-			
-			processedText = processPatternsInChunks(processedText, patterns);
-		
-		// Then apply search highlighting if query exists
-		if (!query) return processedText;
+	// Need to check if parent node has same data-hightlight-Id
+	const highlightText = (text, query) => {
+		//console.log(text,"-------------",query);
+		if (!query) return text;
 
 		const regex = new RegExp(`(${query})`, "g");
-		return processedText.replace(
+		return text.replace(
 			regex,
 			`<span class="highlight hightlightcolor" data-highlight-id="${highlightName}" >$1</span>`
 		);
-		} catch (error) {
-			console.error("Error in highlightText:", error);
-			return text; // Return original text if highlighting fails
-		}
-	}, [highlightName]);
+	};
 
 	const handleImageClick = () => {
 		setAddTable(false);
 		setAddImage(true);
 		setIsMultiple(false);
 		setAddLabel(false);
+		
+		// Reset counters when switching modes
+		resetCounters();
+		
+		// Auto-highlight all images with sequential names
+		autoHighlightImages();
 	};
 
 	const handleTableClick = () => {
@@ -1220,23 +1098,596 @@ function DocxToTextConverter() {
 		setAddImage(false);
 		setIsMultiple(false);
 		setAddLabel(false);
+		
+		// Reset counters when switching modes
+		resetCounters();
+		
+		// Auto-highlight all tables with sequential names
+		autoHighlightTables();
 	};
+
 	const handleTextClick = () => {
 		setAddTable(false);
 		setAddImage(false);
 		setIsMultiple(false);
 		setAddLabel(true);
 
-		// Generate a new id for the highlight
-		const highlightId = generateHighlightId();
-		setNewHighlight({
-			id: highlightId,
-			text: "",
-			label: "",
-			name: highlightId,
-			type: "text",
-			multi: isMultiple,
+		// Reset counters when switching modes
+		resetCounters();
+
+		// Auto-detect text patterns with underscores
+		autoDetectTextPatterns();
+	};
+
+	// Function to reset table counter
+	const resetTableCounter = () => {
+		setTableCounter(1);
+	};
+
+	// Function to show table information
+	const showTableInfo = () => {
+		if (!contentRef.current) return;
+
+		const tables = contentRef.current.querySelectorAll('table');
+		const highlightedTables = contentRef.current.querySelectorAll('[data-highlight-id] table');
+		
+		const totalTables = tables.length;
+		const highlightedCount = highlightedTables.length;
+		const unhighlightedCount = totalTables - highlightedCount;
+		
+		setIsAlertOpen(true);
+		setAlertText(`Table Information:\n\nTotal tables: ${totalTables}\nHighlighted: ${highlightedCount}\nUnhighlighted: ${unhighlightedCount}\n\nNext table will be named: table${tableCounter}`);
+	};
+
+	// Function to reset image counter
+	const resetImageCounter = () => {
+		setImageCounter(1);
+	};
+
+	// Function to show image information
+	const showImageInfo = () => {
+		if (!contentRef.current) return;
+
+		const images = contentRef.current.querySelectorAll('img');
+		const highlightedImages = contentRef.current.querySelectorAll('[data-highlight-id] img');
+		
+		const totalImages = images.length;
+		const highlightedCount = highlightedImages.length;
+		const unhighlightedCount = totalImages - highlightedCount;
+		
+		setIsAlertOpen(true);
+		setAlertText(`Image Information:\n\nTotal images: ${totalImages}\nHighlighted: ${highlightedCount}\nUnhighlighted: ${unhighlightedCount}\n\nNext image will be named: image${imageCounter}`);
+	};
+
+	// Function to automatically highlight all images with sequential names
+	const autoHighlightImages = () => {
+		if (!contentRef.current) return;
+
+		const images = contentRef.current.querySelectorAll('img');
+		if (images.length === 0) {
+			setIsAlertOpen(true);
+			setAlertText("No images found in the content.");
+			return;
+		}
+
+		// Check if any images are already highlighted
+		const alreadyHighlightedImages = contentRef.current.querySelectorAll('[data-highlight-id] img');
+		const unhighlightedImages = Array.from(images).filter(img => !img.closest('[data-highlight-id]'));
+		
+		if (unhighlightedImages.length === 0) {
+			setIsAlertOpen(true);
+			setAlertText("All images are already highlighted. No new images to extract.");
+			return;
+		}
+
+		const newHighlights = [];
+		let currentImageCounter = imageCounter;
+
+		unhighlightedImages.forEach((image, index) => {
+			const highlightId = generateHighlightId();
+			const imageName = `image${currentImageCounter}`;
+			
+			// Create div wrapper for the image
+			const div = createHighlightSpan(
+				"div",
+				highlightId,
+				image.outerHTML
+			);
+			div.style.border = "3px solid #10b981";
+			div.style.boxSizing = "border-box";
+			div.style.display = "inline-block";
+			div.style.margin = "10px 0";
+			div.style.padding = "5px";
+			div.style.backgroundColor = "#ecfdf5";
+			div.style.borderRadius = "5px";
+			div.setAttribute("title", `Image: ${imageName}`);
+
+			// Replace the image with the highlighted div
+			image.parentNode.replaceChild(div, image);
+
+			// Add to highlights array
+			const newHighlight = {
+				id: highlightId,
+				text: image.outerHTML,
+				label: imageName,
+				type: "image",
+				name: imageName,
+				multi: false,
+			};
+
+			newHighlights.push(newHighlight);
+			currentImageCounter++;
 		});
+
+		if (newHighlights.length > 0) {
+			// Update highlights state using functional update to avoid stale state
+			setHighlights(prevHighlights => {
+				const updatedHighlights = [...prevHighlights, ...newHighlights];
+				
+				// Save to server with updated highlights
+				const updatedContent = contentRef.current.innerHTML;
+				saveHighlights(updatedHighlights, updatedContent);
+				
+				return updatedHighlights;
+			});
+			
+			// Update image counter
+			setImageCounter(currentImageCounter);
+			
+			setIsAlertOpen(true);
+			setAlertText(`Successfully Extracts highlights`);
+		} else {
+			setIsAlertOpen(true);
+			setAlertText("All images are already highlighted or no new images found.");
+		}
+	};
+
+	// Function to automatically highlight all tables with sequential names
+	const autoHighlightTables = () => {	
+		if (!contentRef.current) return;
+
+		const tables = contentRef.current.querySelectorAll('table');
+		if (tables.length === 0) {
+			setIsAlertOpen(true);
+			setAlertText("No tables found in the content.");
+			return;
+		}
+
+		// Check if any tables are already highlighted
+		const alreadyHighlightedTables = contentRef.current.querySelectorAll('[data-highlight-id] table');
+		const unhighlightedTables = Array.from(tables).filter(table => !table.closest('[data-highlight-id]'));
+		
+		if (unhighlightedTables.length === 0) {
+			setIsAlertOpen(true);
+			setAlertText("All tables are already highlighted. No new tables to extract.");
+			return;
+		}
+
+		const newHighlights = [];
+		let currentTableCounter = tableCounter;
+
+		unhighlightedTables.forEach((table, index) => {
+			const highlightId = generateHighlightId();
+			const tableName = `table${currentTableCounter}`;
+			
+			// Create section wrapper for the table
+			const section = createHighlightSpan(
+				"section",
+				highlightId,
+				table.outerHTML
+			);
+			section.style.border = "3px solid #3b82f6";
+			section.style.boxSizing = "border-box";
+			section.style.display = "inline-block";
+			section.style.margin = "10px 0";
+			section.style.padding = "5px";
+			section.style.backgroundColor = "#eff6ff";
+			section.style.borderRadius = "5px";
+			section.setAttribute("title", `Table: ${tableName}`);
+
+			// Replace the table with the highlighted section
+			table.parentNode.replaceChild(section, table);
+
+			// Add to highlights array
+			const newHighlight = {
+				id: highlightId,
+				text: table.outerHTML,
+				label: tableName,
+				type: "table",
+				name: tableName,
+				multi: false,
+			};
+
+			newHighlights.push(newHighlight);
+			currentTableCounter++;
+		});
+
+		if (newHighlights.length > 0) {
+			// Update highlights state using functional update to avoid stale state
+			setHighlights(prevHighlights => {
+				const updatedHighlights = [...prevHighlights, ...newHighlights];
+				
+				// Save to server with updated highlights
+				const updatedContent = contentRef.current.innerHTML;
+				saveHighlights(updatedHighlights, updatedContent);
+				
+				return updatedHighlights;
+			});
+			
+			// Update table counter
+			setTableCounter(currentTableCounter);
+			
+			setIsAlertOpen(true);
+			setAlertText(`Successfully Extracts highlights`);
+		} else {
+			setIsAlertOpen(true);
+			setAlertText("All tables are already highlighted or no new tables found.");
+		}
+	};
+
+	// Function to reset text counter
+	const resetTextCounter = () => {
+		setTextCounter(1);
+	};
+
+	// Function to show text pattern information
+	const showTextPatternInfo = () => {
+		if (!contentRef.current) return;
+
+		const content = contentRef.current.innerHTML;
+		// Fixed regex to match complete underscore groups including text before with spaces and special characters
+		// This pattern will match text before underscores including spaces, commas, slashes, etc.
+		const underscoreGroupRegex = /([a-zA-Z0-9\s,\/\.]+)([_]{5,})/g;
+		// Improved regex to match pure underscore fields (minimum 3 underscores)
+		const pureUnderscoreRegex = /([_]{5,})/g;
+		const patternRegex = /([a-zA-Z0-9\s]+):"([_]+)"|([a-zA-Z0-9\s]+):([_]+)/g;
+		const matches = [];
+		let match;
+
+		// Track all found patterns to avoid duplicates
+		const allFoundPatterns = new Set();
+
+		// Find all underscore groups (text + underscores as one value)
+		while ((match = underscoreGroupRegex.exec(content)) !== null) {
+			const textBefore = match[1].trim();
+			const underscores = match[2];
+			const fullValue = textBefore + underscores;
+			
+			// Only add if we haven't seen this exact group before
+			if (!allFoundPatterns.has(fullValue)) {
+				allFoundPatterns.add(fullValue);
+				
+				// Use meaningful text as label, or Value_X if no meaningful text
+				const meaningfulText = textBefore.replace(/[,\s]+$/, '').trim();
+				// Check if meaningfulText has actual content (not just spaces or empty)
+				const hasMeaningfulText = meaningfulText && meaningfulText.length > 0 && !/^\s*$/.test(meaningfulText);
+				const label = hasMeaningfulText ? meaningfulText : `Value_${matches.length + 1}`;
+				
+				matches.push({
+					label: label,
+					value: underscores, // Only the underscore part
+					fullMatch: fullValue,
+					textBefore: textBefore,
+					underscores: underscores
+				});
+			}
+		}
+
+		// Find all pure underscore fields (just underscores without text before)
+		while ((match = pureUnderscoreRegex.exec(content)) !== null) {
+			const underscores = match[1];
+			const fullValue = underscores;
+			
+			// Only add if we haven't seen this exact underscore pattern before
+			if (!allFoundPatterns.has(fullValue)) {
+				allFoundPatterns.add(fullValue);
+				
+				matches.push({
+					label: `Value_${matches.length + 1}`,
+					value: underscores, // Only the underscore part
+					fullMatch: fullValue,
+					textBefore: "",
+					underscores: underscores
+				});
+			}
+		}
+
+		// Find all labeled patterns
+		while ((match = patternRegex.exec(content)) !== null) {
+			const fullMatch = match[0];
+			const label = (match[1] || match[3]).trim();
+			const value = match[2] || match[4];
+			
+			// Only add if we haven't seen this exact pattern before
+			if (!allFoundPatterns.has(fullMatch)) {
+				allFoundPatterns.add(fullMatch);
+				matches.push({
+					label: label,
+					value: value, // Only the underscore part
+					fullMatch: match[0]
+				});
+			}
+		}
+
+		setIsAlertOpen(true);
+		setAlertText(`Text Pattern Information:\n\nTotal underscore groups found: ${matches.length}\n\nNext text will be named: text${textCounter}\n\nExamples:\n${matches.slice(0, 5).map(m => `${m.label}: "${m.value}" (highlighted part only)`).join('\n')}\n\nNote: Only the underscore part is highlighted, text before becomes the label.`);
+	};
+
+	const handleAutoDetectClick = () => {
+		setAddTable(false);
+		setAddImage(false);
+		setIsMultiple(false);
+		setAddLabel(false);
+		
+		// Check if there are existing highlights
+		const existingHighlights = contentRef.current?.querySelectorAll('.highlight');
+		if (existingHighlights && existingHighlights.length > 0) {
+			setIsConfirmingAutoDetect(true);
+			setIsAlertOpen(true);
+			setAlertText("This will clear existing highlights and create new ones from underscores. Continue?");
+		} else {
+			// Auto-detect underscores and create highlights
+			autoDetectUnderscores();
+		}
+	};
+
+	const confirmAutoDetect = () => {
+		setIsConfirmingAutoDetect(false);
+		setIsAlertOpen(false);
+		// Auto-detect underscores and create highlights
+		autoDetectUnderscores();
+	};
+
+	// Function to clear existing auto-detected highlights
+	const clearExistingAutoHighlights = () => {
+		if (!contentRef.current) return;
+		
+		// Find all highlight spans and remove them, keeping only the text content
+		const highlightSpans = contentRef.current.querySelectorAll('.highlight');
+		highlightSpans.forEach(span => {
+			if (span.parentNode) {
+				const textNode = document.createTextNode(span.textContent);
+				span.parentNode.replaceChild(textNode, span);
+			}
+		});
+	};
+
+	// Function to automatically detect underscores and create highlights
+	const autoDetectUnderscores = () => {
+		if (!contentRef.current) return;
+
+		setIsAutoDetecting(true);
+		
+		// Clear existing highlights first
+		clearExistingAutoHighlights();
+		
+		const content = contentRef.current.innerHTML;
+		const regex = /([a-zA-Z0-9]{2,15})_/g;
+		const pureUnderscoreRegex = /([_]{5,})/g;
+		const matches = [];
+		let match;
+
+		// Track all found patterns to avoid duplicates
+		const allFoundPatterns = new Set();
+
+		// Find all matches with text before underscores and remove duplicates
+		while ((match = regex.exec(content)) !== null) {
+			const fullMatch = match[0];
+			const label = match[1];
+			const underscorePart = "_"; // Only the underscore part
+			
+			// Only add if we haven't seen this exact match before
+			if (!allFoundPatterns.has(fullMatch)) {
+				allFoundPatterns.add(fullMatch);
+				matches.push({
+					label: label,
+					index: match.index,
+					fullMatch: fullMatch,
+					underscorePart: underscorePart
+				});
+			}
+		}
+
+		// Find all pure underscore fields
+		while ((match = pureUnderscoreRegex.exec(content)) !== null) {
+			const fullMatch = match[1];
+			
+			// Only add if we haven't seen this exact match before
+			if (!allFoundPatterns.has(fullMatch)) {
+				allFoundPatterns.add(fullMatch);
+				matches.push({
+					label: `Value_${matches.length + 1}`,
+					index: match.index,
+					fullMatch: fullMatch,
+					underscorePart: fullMatch
+				});
+			}
+		}
+
+		if (matches.length === 0) {
+			setIsAutoDetecting(false);
+			setIsAlertOpen(true);
+			setAlertText("No underscores found in the content. Please add underscores to text you want to highlight.");
+			return;
+		}
+
+		// Create highlights for each match
+		const newHighlights = [];
+		matches.forEach((matchInfo, index) => {
+		const highlightId = generateHighlightId();
+			
+			// Add to highlights array - store only the underscore part as text
+			const newHighlight = {
+			id: highlightId,
+				text: matchInfo.underscorePart, // Only the underscore part
+				label: matchInfo.label,
+			type: "text",
+				name: highlightId,
+				multi: false,
+			};
+
+			newHighlights.push(newHighlight);
+		});
+
+		// Update the DOM with highlights - improved to avoid nested highlights
+		setTimeout(() => {
+			try {
+			// Sort matches by length (longest first) to avoid partial matches
+			const sortedHighlights = [...newHighlights].sort((a, b) => b.text.length - a.text.length);
+			
+			sortedHighlights.forEach((highlight) => {
+				// Replace all occurrences of the underscore pattern in the content
+				const contentDiv = contentRef.current;
+				
+				// Walk through all text nodes and replace the pattern
+				const walker = document.createTreeWalker(
+					contentDiv,
+					NodeFilter.SHOW_TEXT,
+					null,
+					false
+				);
+
+				let node;
+				while (node = walker.nextNode()) {
+					if (node.textContent.includes(highlight.text)) {
+						// Check if this node is already inside a highlight
+						const parentHighlight = node.parentNode.closest('.highlight');
+						if (parentHighlight) {
+							continue; // Skip if already highlighted
+						}
+						
+						// Create the highlight span for only the underscore part
+						const span = document.createElement('span');
+						span.id = highlight.id;
+						span.setAttribute('data-highlight-id', highlight.id);
+						span.classList.add('highlight');
+						span.textContent = highlight.text; // Only the underscores
+						
+						// Replace only the underscore part with the span using a more reliable method
+						const text = node.textContent;
+						const parts = text.split(highlight.text);
+						
+						if (parts.length > 1) {
+							const fragment = document.createDocumentFragment();
+							
+							parts.forEach((part, index) => {
+								if (part) {
+									fragment.appendChild(document.createTextNode(part));
+								}
+								if (index < parts.length - 1) {
+									const spanClone = span.cloneNode(true);
+									fragment.appendChild(spanClone);
+								}
+							});
+							
+							node.parentNode.replaceChild(fragment, node);
+						} else if (text === highlight.text) {
+							// If the entire text node matches, replace it directly
+							node.parentNode.replaceChild(span, node);
+						}
+					}
+				}
+			});
+
+				// Update highlights state using functional update to avoid stale state
+				setHighlights(prevHighlights => {
+					const updatedHighlights = [...prevHighlights, ...newHighlights];
+
+					// Save to server with updated highlights
+			const updatedContent = contentRef.current.innerHTML;
+					saveHighlights(updatedHighlights, updatedContent);
+					
+					return updatedHighlights;
+				});
+
+			// Ensure highlights are properly reflected
+			ensureHighlightsReflected();
+
+			setIsAutoDetecting(false);
+			setIsAlertOpen(true);
+				setAlertText(`Successfully Extracts highlights`);
+			} catch (error) {
+				console.error('Error in autoDetectUnderscores:', error);
+				setIsAutoDetecting(false);
+				setIsAlertOpen(true);
+				setAlertText(`Error occurred while highlighting underscores: ${error.message}`);
+			}
+		}, 100);
+	};
+
+	// Function to apply underscores to the example content
+	const applyUnderscoresToExample = () => {
+		if (!contentRef.current) return;
+
+		// Example content with underscores that should be highlighted
+		const exampleContent = `
+			This Agreement for Sale ("Agreement") executed on this ____day of _____________, 2023 at Hyderabad.
+			
+			Value_1	docx_	
+			Value_2	executed on this____	
+			Value_3	day of_____________	
+			Value_4	SriVasudev	
+			Value_5	, aged about_____	
+			Value_6	BLOCK___	
+			Value_7	named as_____________	
+			Value_8	Rupees________________________	
+			Value_9	BLOCK____	
+			PAN	PAN:XYZE9640H
+		`;
+
+		// Set the content
+		contentRef.current.innerHTML = exampleContent;
+		setConversionStatus(exampleContent);
+
+		// Now apply underscore detection
+		setTimeout(() => {
+			autoDetectUnderscores();
+		}, 100);
+	};
+
+	// Helper function to show usage instructions
+	const showUsageInstructions = () => {
+		setIsAlertOpen(true);
+		setAlertText("Usage Instructions:\n\n1. Underscore Detection: Add underscores to text you want to highlight. Example: 'Sri_' will create a highlight with label 'Sri' and only highlight the underscore part.\n\n2. Text Pattern Detection: Click '+ Add Text' to highlight complete underscore groups. Only the underscore part is highlighted, meaningful text before becomes the label (e.g., 'Sri ________________________' → Label: 'Sri', Highlighted: '________________________').\n\n3. Table/Image Detection: Click '+ Add Table' or '+ Add Image' to automatically highlight all tables/images with sequential names.\n\nNote: Text before underscores becomes the label automatically, only the underscore part is highlighted!");
+	};
+
+	// Function to preview what will be detected
+	const previewUnderscores = () => {
+		if (!contentRef.current) return;
+
+		const content = contentRef.current.innerHTML;
+		const regex = /([a-zA-Z0-9]{2,15})_/g;
+		const matches = [];
+		let match;
+
+		// Find all matches and remove duplicates
+		const seenMatches = new Set();
+		while ((match = regex.exec(content)) !== null) {
+			const fullMatch = match[0];
+			const label = match[1];
+			const underscorePart = "_";
+			
+			// Only add if we haven't seen this exact match before
+			if (!seenMatches.has(fullMatch)) {
+				seenMatches.add(fullMatch);
+				matches.push({
+					label: label,
+					index: match.index,
+					fullMatch: fullMatch,
+					underscorePart: underscorePart
+				});
+			}
+		}
+
+		if (matches.length === 0) {
+			setIsAlertOpen(true);
+			setAlertText("No underscores found in the content. Please add underscores to text you want to highlight.");
+			return;
+		}
+
+		const previewText = matches.map(match => `Label: "${match.label}" → Highlighted: "${match.underscorePart}"`).join('\n');
+		setIsAlertOpen(true);
+		setAlertText(`Found ${matches.length} unique underscore pattern(s) to highlight:\n\n${previewText}\n\nClick "Auto Detect" to create highlights.\n\nNote: Text before underscore becomes the label, only the underscore part is highlighted (e.g., "Sri_" → Label: "Sri", Highlighted: "_")`);
 	};
 
 	const handleSearchChange = (event) => {
@@ -1252,16 +1703,473 @@ function DocxToTextConverter() {
 	};
 	const highlightedText = highlightText(conversionStatus, searchText);
 
+	// Function to show text pattern usage instructions
+	const showTextPatternUsageInstructions = () => {
+		setIsAlertOpen(true);
+		setAlertText("Text Pattern Detection:\n\nThis will highlight only the underscore part of complete underscore groups:\n\n- Text + underscores: 'Sri ________________________' → Label: 'Sri', Highlighted: '________________________'\n- Comma + underscores: ', aged about_____' → Label: 'aged about', Highlighted: '_____'\n- Space + underscores: ' ________________' → Label: 'Value_X', Highlighted: '________________'\n- Labeled patterns: 'name:\"________________\"' → Label: 'name', Highlighted: '________________'\n\nMeaningful text before underscores becomes the label, only the underscore part is highlighted.\n\nClick '+ Add Text' to automatically detect and highlight all underscore groups.");
+	};
+
+	// Function to automatically detect text patterns with underscores
+	const autoDetectTextPatterns = () => {
+		if (!contentRef.current) return;
+
+		setIsTextPatternDetecting(true);
+		
+		const content = contentRef.current.innerHTML;
+		// Fixed regex to match complete underscore groups including text before with spaces and special characters
+		// This pattern will match text before underscores including spaces, commas, slashes, etc.
+		const underscoreGroupRegex = /([a-zA-Z0-9\s,\/\.]+)([_]{5,})/g;
+		// Improved regex to match pure underscore fields (minimum 3 underscores)
+		const pureUnderscoreRegex = /([_]{5,})/g;
+		const patternRegex = /([a-zA-Z0-9\s]+):"([_]+)"|([a-zA-Z0-9\s]+):([_]+)/g;
+		const matches = [];
+		let match;
+
+		// Track all found patterns to avoid duplicates
+		const allFoundPatterns = new Set();
+
+		// Find all underscore groups first (text + underscores as one value)
+		while ((match = underscoreGroupRegex.exec(content)) !== null) {
+			const textBefore = match[1].trim();
+			const underscores = match[2];
+			const fullValue = textBefore + underscores;
+			
+			// Only add if we haven't seen this exact group before
+			if (!allFoundPatterns.has(fullValue)) {
+				allFoundPatterns.add(fullValue);
+				
+				// Use meaningful text as label, or Value_X if no meaningful text
+				const meaningfulText = textBefore.replace(/[,\s]+$/, '').trim();
+				// Check if meaningfulText has actual content (not just spaces or empty)
+				const hasMeaningfulText = meaningfulText && meaningfulText.length > 0 && !/^\s*$/.test(meaningfulText);
+				const label = hasMeaningfulText ? meaningfulText : `Value_${matches.length + 1}`;
+				
+				matches.push({
+					label: label,
+					value: underscores, // Only the underscore part
+					fullMatch: fullValue,
+					textBefore: textBefore,
+					underscores: underscores,
+					isGroup: true
+				});
+			}
+		}
+
+		// Find all pure underscore fields (just underscores without text before)
+		while ((match = pureUnderscoreRegex.exec(content)) !== null) {
+			const underscores = match[1];
+			const fullValue = underscores;
+			
+			// Only add if we haven't seen this exact underscore pattern before
+			if (!allFoundPatterns.has(fullValue)) {
+				allFoundPatterns.add(fullValue);
+				
+				matches.push({
+					label: `Value_${matches.length + 1}`,
+					value: underscores, // Only the underscore part
+					fullMatch: fullValue,
+					textBefore: "",
+					underscores: underscores,
+					isGroup: true
+				});
+			}
+		}
+
+		// Find all labeled patterns
+		while ((match = patternRegex.exec(content)) !== null) {
+			const fullMatch = match[0];
+			const label = (match[1] || match[3]).trim();
+			const value = match[2] || match[4];
+			
+			// Only add if we haven't seen this exact pattern before
+			if (!allFoundPatterns.has(fullMatch)) {
+				allFoundPatterns.add(fullMatch);
+				matches.push({
+					label: label,
+					value: value, // Only the underscore part
+					fullMatch: fullMatch,
+					isGroup: false
+				});
+			}
+		}
+
+		if (matches.length === 0) {
+			setIsTextPatternDetecting(false);
+			setIsAlertOpen(true);
+			setAlertText("No underscore groups or text patterns found in the content.");
+			return;
+		}
+
+		// Check if any of these patterns are already highlighted
+		const alreadyHighlightedText = contentRef.current.querySelectorAll('.highlight');
+		const alreadyHighlightedContent = Array.from(alreadyHighlightedText).map(span => span.textContent);
+		
+		// Filter out patterns that are already highlighted
+		const newMatches = matches.filter(match => !alreadyHighlightedContent.includes(match.value));
+		
+		if (newMatches.length === 0) {
+			setIsTextPatternDetecting(false);
+			setIsAlertOpen(true);
+			setAlertText("All found text patterns are already highlighted. No new patterns to extract.");
+			return;
+		}
+
+		// Create highlights for each new match
+		const newHighlights = [];
+		let currentTextCounter = textCounter;
+
+		newMatches.forEach((matchInfo, index) => {
+			const highlightId = generateHighlightId();
+			const textName = `text${currentTextCounter}`;
+			
+			// Add to highlights array - store only the underscore part as text
+			const newHighlight = {
+				id: highlightId,
+				text: matchInfo.value, // Only the underscore part
+				label: matchInfo.label,
+				type: "text",
+				name: textName,
+				multi: false,
+			};
+
+			newHighlights.push(newHighlight);
+			currentTextCounter++;
+		});
+
+		// Update the DOM with highlights - improved to avoid nested highlights
+		setTimeout(() => {
+			try {
+			// Sort matches by length (longest first) to avoid partial matches
+			const sortedHighlights = [...newHighlights].sort((a, b) => b.text.length - a.text.length);
+			
+			sortedHighlights.forEach((highlight) => {
+				// Find all text nodes that contain the underscore pattern
+				const walker = document.createTreeWalker(
+					contentRef.current,
+					NodeFilter.SHOW_TEXT,
+					null,
+					false
+				);
+
+				let node;
+				while (node = walker.nextNode()) {
+					if (node.textContent.includes(highlight.text)) {
+						// Check if this node is already inside a highlight
+						const parentHighlight = node.parentNode.closest('.highlight');
+						if (parentHighlight) {
+							continue; // Skip if already highlighted
+						}
+						
+						// Create the highlight span for only the underscore part
+						const span = document.createElement('span');
+						span.id = highlight.id;
+						span.setAttribute('data-highlight-id', highlight.id);
+						span.classList.add('highlight');
+						span.textContent = highlight.text; // Only the underscores
+						
+						// Replace only the underscore part with the span
+						const text = node.textContent;
+						const parts = text.split(highlight.text);
+						
+						if (parts.length > 1) {
+							const fragment = document.createDocumentFragment();
+							
+							parts.forEach((part, index) => {
+								if (part) {
+									fragment.appendChild(document.createTextNode(part));
+								}
+								if (index < parts.length - 1) {
+									const spanClone = span.cloneNode(true);
+									fragment.appendChild(spanClone);
+								}
+							});
+							
+							node.parentNode.replaceChild(fragment, node);
+						} else if (text === highlight.text) {
+							// If the entire text node matches, replace it directly
+							node.parentNode.replaceChild(span, node);
+						}
+					}
+				}
+			});
+
+				// Update highlights state using functional update to avoid stale state
+				setHighlights(prevHighlights => {
+					const updatedHighlights = [...prevHighlights, ...newHighlights];
+					
+					// Save to server with updated highlights
+					const updatedContent = contentRef.current.innerHTML;
+					saveHighlights(updatedHighlights, updatedContent);
+					
+					return updatedHighlights;
+				});
+			
+			// Update text counter
+			setTextCounter(currentTextCounter);
+
+			// Ensure highlights are properly reflected
+			ensureHighlightsReflected();
+
+			setIsTextPatternDetecting(false);
+			setIsAlertOpen(true);
+				setAlertText(`Successfully Extracted ${newMatches.length} text patterns`);
+			} catch (error) {
+				console.error('Error in autoDetectTextPatterns:', error);
+				setIsTextPatternDetecting(false);
+				setIsAlertOpen(true);
+				setAlertText(`Error occurred while highlighting text patterns: ${error.message}`);
+			}
+		}, 100);
+	};
+
+	// Function to ensure highlights are properly reflected in the document
+	const ensureHighlightsReflected = () => {
+		if (!contentRef.current) return;
+		
+		// Update the conversion status with the current content
+		const currentContent = contentRef.current.innerHTML;
+		setConversionStatus(currentContent);
+		
+		// Force a re-render of the content
+		const highlightedText = highlightText(currentContent, searchText);
+		contentRef.current.innerHTML = highlightedText;
+	};
+
+	// Function to refresh document content with updated highlights
+	const refreshDocumentContent = () => {
+		if (!contentRef.current) return;
+		
+		// Get the current content
+		const currentContent = contentRef.current.innerHTML;
+		
+		// Update all highlights in the content
+		highlights.forEach(highlight => {
+			const spans = contentRef.current.querySelectorAll(
+				`[data-highlight-id="${highlight.id}"]`
+			);
+			spans.forEach(span => {
+				if (span && span.parentNode) {
+					span.textContent = highlight.text;
+				}
+			});
+		});
+		
+		// Update the conversion status
+		const updatedContent = contentRef.current.innerHTML;
+		setConversionStatus(updatedContent);
+		
+		// Force a re-render
+		ensureHighlightsReflected();
+	};
+
+	// Function to show current highlight status
+	const showHighlightStatus = () => {
+		if (!contentRef.current) return;
+
+		const images = contentRef.current.querySelectorAll('img');
+		const tables = contentRef.current.querySelectorAll('table');
+		const textHighlights = contentRef.current.querySelectorAll('.highlight');
+		
+		const highlightedImages = contentRef.current.querySelectorAll('[data-highlight-id] img');
+		const highlightedTables = contentRef.current.querySelectorAll('[data-highlight-id] table');
+		
+		const totalImages = images.length;
+		const totalTables = tables.length;
+		const totalTextHighlights = textHighlights.length;
+		
+		const highlightedImageCount = highlightedImages.length;
+		const highlightedTableCount = highlightedTables.length;
+		
+		const unhighlightedImages = totalImages - highlightedImageCount;
+		const unhighlightedTables = totalTables - highlightedTableCount;
+		
+		setIsAlertOpen(true);
+		setAlertText(`Current Highlight Status:\n\n📷 Images: ${highlightedImageCount}/${totalImages} highlighted (${unhighlightedImages} remaining)\n📊 Tables: ${highlightedTableCount}/${totalTables} highlighted (${unhighlightedTables} remaining)\n📝 Text Patterns: ${totalTextHighlights} highlighted\n\nClick the extract buttons to highlight remaining items.`);
+	};
+
+	// Function to reset counters when switching modes
+	const resetCounters = () => {
+		setTableCounter(1);
+		setImageCounter(1);
+		setTextCounter(1);
+	};
+
+	// Function to handle modal close and remove hover effects
+	const handleModalClose = () => {
+		removeAllHoverEffects();
+		setIsModalOpen(false);
+		setEditHighlight("");
+		setEditInitialText("");
+		setEditHighlightId(null);
+	};
+
+	// Function to handle mouse enter on edit button
+	const handleEditButtonMouseEnter = (highlightId) => {
+		addHoverEffectToHighlight(highlightId);
+	};
+
+	// Function to handle mouse leave on edit button
+	const handleEditButtonMouseLeave = () => {
+		// Only remove hover effects if not currently editing
+		if (!isModalOpen) {
+			removeAllHoverEffects();
+		}
+	};
+
+	// Function to handle clicking on highlight links
+	const handleHighlightLinkClick = (highlightId) => {
+		addHoverEffectToHighlight(highlightId);
+		
+		// Remove the hover effect after 3 seconds
+		setTimeout(() => {
+			if (!isModalOpen) {
+				removeAllHoverEffects();
+			}
+		}, 3000);
+	};
+
+	// Function to start inline editing for text highlights (DEPRECATED - now uses modal)
+	const startInlineEdit = (highlight) => {
+		// This function is deprecated - use startEdit instead
+		startEdit(highlight);
+	};
+
+	// Function to save inline edit (DEPRECATED - now uses modal)
+	const saveInlineEdit = () => {
+		// This function is deprecated - editing is now handled by modal
+		console.log("Inline editing is deprecated - use modal instead");
+	};
+
+	// Function to cancel inline edit (DEPRECATED - now uses modal)
+	const cancelInlineEdit = () => {
+		// This function is deprecated - editing is now handled by modal
+		console.log("Inline editing is deprecated - use modal instead");
+	};
+
+	// Function to add blue hover effect for inline editing (DEPRECATED)
+	const addBlueHoverEffectToHighlight = (highlightId) => {
+		// This function is deprecated - use addHoverEffectToHighlight instead
+		addHoverEffectToHighlight(highlightId);
+	};
+
+	// Function to remove blue hover effects (DEPRECATED)
+	const removeBlueHoverEffects = () => {
+		// This function is deprecated - use removeAllHoverEffects instead
+		removeAllHoverEffects();
+	};
+
+	// Function to debug regex pattern matching
+	const debugRegexPattern = () => {
+		if (!contentRef.current) return;
+
+		const content = contentRef.current.innerHTML;
+		// Fixed regex to match complete underscore groups including text before with spaces and special characters
+		// This pattern will match text before underscores including spaces, commas, slashes, etc.
+		const underscoreGroupRegex = /([a-zA-Z0-9\s,\/\.]+)([_]{5,})/g;
+		const matches = [];
+		let match;
+
+		while ((match = underscoreGroupRegex.exec(content)) !== null) {
+			const textBefore = match[1].trim();
+			const underscores = match[2];
+			const fullValue = textBefore + underscores;
+			
+			const meaningfulText = textBefore.replace(/[,\s]+$/, '').trim();
+			const hasMeaningfulText = meaningfulText && meaningfulText.length > 0 && !/^\s*$/.test(meaningfulText);
+			const label = hasMeaningfulText ? meaningfulText : `Value_${matches.length + 1}`;
+			
+			matches.push({
+				textBefore: textBefore,
+				meaningfulText: meaningfulText,
+				hasMeaningfulText: hasMeaningfulText,
+				label: label,
+				underscores: underscores,
+				fullValue: fullValue
+			});
+		}
+
+		const debugText = matches.map((m, i) => 
+			`${i + 1}. Text Before: "${m.textBefore}"\n   Meaningful Text: "${m.meaningfulText}"\n   Has Meaningful Text: ${m.hasMeaningfulText}\n   Final Label: "${m.label}"\n   Full Value: "${m.fullValue}"`
+		).join('\n\n');
+
+		setIsAlertOpen(true);
+		setAlertText(`Debug Regex Pattern Results:\n\n${debugText || "No matches found"}`);
+	};
+
+	// Function to start editing for highlights (now uses modal for all types)
+	const startEdit = (highlight) => {
+		// Use modal for all highlight types (text, table, image)
+		handleEditHighlight(highlight.id);
+	};
+
 	return (
 		<div>
-			<div className="flex justify-end mb-2">
-				<button
-					className="px-4 py-2 bg-green-500 text-white rounded"
-					onClick={() => navigate(`/htmlparser/${id}`)}
-				>
-					Go to HTML Parser Tool
-				</button>
-			</div>
+			<style>
+				{`
+					.highlight {
+						background-color: transparent !important;
+						border: 1px solid #0000FF !important;
+						border-radius: 3px !important;
+						padding: 2px 4px !important;
+						margin: 0 2px !important;
+						display: inline !important;
+						font-weight: normal !important;
+						color: inherit !important;
+						vertical-align: baseline !important;
+						line-height: inherit !important;
+					}
+					.highlightcolor {
+						background-color: transparent !important;
+						border: 1px solid #0000FF !important;
+						border-radius: 3px !important;
+						padding: 2px 4px !important;
+						margin: 0 2px !important;
+						display: inline !important;
+						font-weight: normal !important;
+						color: inherit !important;
+						vertical-align: baseline !important;
+						line-height: inherit !important;
+					}
+					/* Special styling for text pattern highlights */
+					.highlight[data-highlight-id*="text"] {
+						background-color: transparent !important;
+						border: 1px solid #0000FF !important;
+						border-radius: 3px !important;
+						padding: 2px 4px !important;
+						margin: 0 2px !important;
+						display: inline !important;
+						font-weight: normal !important;
+						color: inherit !important;
+						vertical-align: baseline !important;
+						line-height: inherit !important;
+						box-shadow: none !important;
+					}
+					/* Pulse animation for editing mode */
+					@keyframes pulse {
+						0% {
+							box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
+						}
+						50% {
+							box-shadow: 0 0 20px rgba(234, 179, 8, 0.8);
+						}
+						100% {
+							box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
+						}
+					}
+					/* Blue pulse animation for inline editing mode */
+					@keyframes bluePulse {
+						0% {
+							box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+						}
+						50% {
+							box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+						}
+						100% {
+							box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+						}
+					}
+				`}
+			</style>
 			<div className="w-full p-2">
 				<div>
 					<div className="flex justify-end">
@@ -1379,7 +2287,7 @@ function DocxToTextConverter() {
 													}`}
 													onClick={handleTextClick}
 												>
-													+ Add Text
+													{isTextPatternDetecting ? "Detecting..." : "+ Add Text"}
 												</button>
 												<button
 													className={`px-3 py-2 text-sm mr-2 rounded-md border ${
@@ -1391,8 +2299,11 @@ function DocxToTextConverter() {
 												>
 													+ Add Table
 												</button>
+												
+											
+											
 												<button
-													className={`px-3 py-2 text-sm rounded-md border ${
+													className={`px-3 py-2 text-sm mr-2 rounded-md border ${
 														addImage
 															? "bg-indigo-600 text-white"
 															: "bg-white-400 text-gray-600"
@@ -1401,6 +2312,10 @@ function DocxToTextConverter() {
 												>
 													+ Add Image
 												</button>
+												
+												
+												
+												
 											</div>
 										</div>
 
@@ -1666,6 +2581,29 @@ function DocxToTextConverter() {
 												</>
 											)}
 											<div className="space-y-2 max-h-80 overflow-y-auto">
+												{/* Summary display */}
+												<div className="bg-gray-50 p-3 rounded-md mb-3">
+													<div className="flex justify-between items-center text-sm">
+														<div>
+															<span className="font-medium">Text Highlights: </span>
+															<span className="text-blue-600">{highlights.filter(h => h.type === "text").length}</span>
+														</div>
+														<div>
+															<span className="font-medium">Table Highlights: </span>
+															<span className="text-green-600">{highlights.filter(h => h.type === "table").length}</span>
+														</div>
+														<div>
+															<span className="font-medium">Image Highlights: </span>
+															<span className="text-purple-600">{highlights.filter(h => h.type === "image").length}</span>
+														</div>
+													</div>
+													<div className="mt-2 text-xs text-gray-600">
+														{addLabel && "Showing: Text highlights only"}
+														{addTable && "Showing: Table highlights only"}
+														{addImage && "Showing: Image highlights only"}
+														{!addLabel && !addTable && !addImage && "Showing: All highlights"}
+													</div>
+												</div>
 												<div className="flex justify-between items-center">
 													<table className="min-w-full divide-y">
 														<thead className="bg-gray-100">
@@ -1682,19 +2620,23 @@ function DocxToTextConverter() {
 															</tr>
 														</thead>
 														<tbody>
-															{highlights.map(
-																(
-																	highlight,
-																	index
-																) => (
+															{highlights
+																.filter(highlight => {
+																	// Filter highlights based on current mode
+																	if (addLabel) {
+																		return highlight.type === "text";
+																	} else if (addTable) {
+																		return highlight.type === "table";
+																	} else if (addImage) {
+																		return highlight.type === "image";
+																	}
+																	return true; // Show all if no specific mode
+																})
+																.map((highlight, index) => (
 																	<tr
-																		key={
-																			highlight.id
-																		}
+																		key={highlight.id}
 																		className={
-																			index %
-																				2 ===
-																			0
+																			index % 2 === 0
 																				? "bg-white"
 																				: "bg-gray-50"
 																		}
@@ -1702,35 +2644,36 @@ function DocxToTextConverter() {
 																		<td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
 																			<a
 																				href={`#${highlight.id}`}
-																				className="text-gray-600 hover:text-blue-800"
+																				className="text-gray-600 hover:text-blue-800 cursor-pointer"
+																				onClick={(e) => {
+																					e.preventDefault();
+																					handleHighlightLinkClick(highlight.id);
+																				}}
+																				title="Click to highlight in document"
 																			>
-																				{
-																					highlight.label
-																				}
+																				{highlight.label}
 																			</a>
 																		</td>
 																		<td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
 																			<a
 																				href={`#${highlight.id}`}
-																				className="text-gray-600 hover:text-blue-800"
+																				className="text-gray-600 hover:text-blue-800 cursor-pointer"
+																				onClick={(e) => {
+																					e.preventDefault();
+																					handleHighlightLinkClick(highlight.id);
+																				}}
+																				title="Click to highlight in document"
 																			>
-																				{highlight.type ===
-																				"text" ? (
+																				{highlight.type === "text" ? (
 																					highlight.text
-																				) : highlight.type ===
-																				  "image" ? (
+																				) : highlight.type === "image" ? (
 																					<img
-																						src={
-																							image
-																						}
+																						src={image}
 																						alt="/"
 																					/>
-																				) : highlight.type ===
-																				  "table" ? (
+																				) : highlight.type === "table" ? (
 																					<img
-																						src={
-																							table
-																						}
+																						src={table}
 																						alt="/"
 																					/>
 																				) : (
@@ -1742,12 +2685,12 @@ function DocxToTextConverter() {
 																			<div className="flex items-center space-x-2">
 																				<button
 																					onClick={() =>
-																						handleEditHighlight(
-																							highlight.id
-																						)
+																						startEdit(highlight)
 																					}
 																					className="p-1 rounded hover:bg-blue-100"
-																					title="Edit"
+																					title="Edit in modal"
+																					onMouseEnter={() => handleEditButtonMouseEnter(highlight.id)}
+																					onMouseLeave={handleEditButtonMouseLeave}
 																				>
 																					<PencilIcon className="h-4 w-4 text-blue-500" />
 																				</button>
@@ -1765,8 +2708,7 @@ function DocxToTextConverter() {
 																			</div>
 																		</td>
 																	</tr>
-																)
-															)}
+																))}
 														</tbody>
 													</table>
 												</div>
@@ -1806,7 +2748,7 @@ function DocxToTextConverter() {
 
 				<EditModal
 					isOpen={isModalOpen}
-					onClose={() => setIsModalOpen(false)}
+					onClose={handleModalClose}
 					onSave={handleSaveHighlight}
 					editHighlight={editHighlight}
 					initialText={editInitialText}
@@ -1821,13 +2763,33 @@ function DocxToTextConverter() {
 					<p className="text-gray-800 text-lg font-semibold mb-4">
 						{alertText}
 					</p>
-					<div className="flex justify-center">
+					<div className="flex justify-center space-x-4">
+						{isConfirmingAutoDetect ? (
+							<>
+								<button
+									className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+									onClick={() => {
+										setIsAlertOpen(false);
+										setIsConfirmingAutoDetect(false);
+									}}
+								>
+									Cancel
+								</button>
+								<button
+									className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+									onClick={confirmAutoDetect}
+								>
+									Continue
+								</button>
+							</>
+						) : (
 						<button
 							className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
 							onClick={() => setIsAlertOpen(false)}
 						>
 							Close
 						</button>
+						)}
 					</div>
 				</div>
 			</NeoModal>
@@ -1876,6 +2838,4 @@ function DocxToTextConverter() {
 	);
 }
 
-export default DocxToTextConverter;
-
-
+export default HtmlParseTool;

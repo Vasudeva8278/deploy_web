@@ -24,6 +24,7 @@ import RoleFeatureManagement from "../RoleFeatureManagement";
 import NeoTemplates from "../NeoTemplate";
 import DocumentSideBar from "../DocumentSideBar.js";
 import NeoProjectTemplates from "../NeoProjectTemplates.jsx";
+import HtmlParserTool from "../HtmlParseTool";
 const Home = () => {
   const [isNavigationVisible, setIsNavigationVisible] = useState(true);
   const [roleFeatures, setRoleFeatures] = useState([]);
@@ -39,7 +40,13 @@ const Home = () => {
   const { user } = useContext(AuthContext);
   const roleId = user?.role || localStorage.getItem("role");
   
-  const shouldShowSidebar = ![EXECUTIVE_ROLE_ID, EXPERT_ROLE_ID].includes(roleId);
+  // Check if user is admin (has admin in role name)
+  const isAdmin = user?.roleName?.toLowerCase().includes('admin') || 
+                  user?.role?.toLowerCase().includes('admin') ||
+                  roleId?.toLowerCase().includes('admin');
+  
+  // Show sidebar for all users except EXECUTIVE and EXPERT roles, or if user is admin
+  const shouldShowSidebar = isAdmin || ![EXECUTIVE_ROLE_ID, EXPERT_ROLE_ID].includes(roleId);
 
   useEffect(() => {
     const fetchRoleFeatures = async () => {
@@ -79,6 +86,15 @@ const Home = () => {
   const isNeoDocuments = location.pathname.startsWith('/NeoDocements');
   const isNeoProjectTemplates = /^\/projects\/[^/]+$/.test(location.pathname);
   const isNeoProjectDocuments = /^\/NeoDocuments\/[^/]+$/.test(location.pathname);
+
+  // Helper function to check if user has access to a feature
+  const hasFeatureAccess = (featureKey) => {
+    // Admin users have access to all features
+    if (isAdmin) {
+      return true;
+    }
+    return roleFeatures.includes(featureKey);
+  };
 
   if (featuresLoading) return null; // or a spinner
 
@@ -122,26 +138,32 @@ const Home = () => {
           
           
           <Routes>
-            {roleFeatures.includes('Users') && (
+            {hasFeatureAccess('Users') && (
               <Route path='/user-manage' element={<UserManage />} />
             )}
             <Route path='/dashboard' element={<Dashboard />} />
             <Route path='/' element={<LandingPage />} />
             <Route path='/NeoTemplates' element={<NeoTemplates />} />
             <Route path='/NeoDocements' element={<NeoDocements />} />
-            {roleFeatures.includes('Templates') && (
+            {hasFeatureAccess('Templates') && (
               <Route path='/document/:id' element={<DocxToTextConverter />} />
             )}
-            {roleFeatures.includes('Documents') && (
+              {hasFeatureAccess('Templates') && (
+              <Route path='/htmlparser' element={<HtmlParserTool />} />
+            )}
+            {hasFeatureAccess('Templates') && (
+              <Route path='/htmlparser/:id' element={<HtmlParserTool />} />
+            )}
+            {hasFeatureAccess('Documents') && (
               <Route path='/docview/:id' element={<DocumentView />} />
             )}
-            {roleFeatures.includes('Documents') && (
+            {hasFeatureAccess('Documents') && (
               <Route path='/docviewall/:id' element={<DocumentContainer />} />
             )}
-            {roleFeatures.includes('Documents') && (
+            {hasFeatureAccess('Documents') && (
               <Route path='/listView' element={<ListofDocuments />} />
             )}
-            {roleFeatures.includes('Documents') && (
+            {hasFeatureAccess('Documents') && (
               <Route
                 path='/export/:id'
                 element={
@@ -151,29 +173,29 @@ const Home = () => {
                 }
               />
             )}
-            {roleFeatures.includes('projects') && (
+            {hasFeatureAccess('projects') && (
               <Route path='/projects' element={<Projects />} />
             )}
-            {roleFeatures.includes('Clients') && (
+            {hasFeatureAccess('Clients') && (
               <Route path='/clients' element={<Clients />} />
             )}
             <Route path='/profile' element={<ProfileSettings />} />
-            {roleFeatures.includes('Clients') && (
+            {hasFeatureAccess('Clients') && (
               <Route path='/viewclient' element={<ViewClient />} />
             )}
-            {roleFeatures.includes('projects') && (
+            {hasFeatureAccess('projects') && (
               <Route path='/NeoTemplates/:id' element={<NeoProTemplates />} />
             )}
          
-         {roleFeatures.includes('projects') && (
+         {hasFeatureAccess('projects') && (
               <Route path='/NeoDocements/:id' element={<NeoProjectTemplates />} />
             )}
 
-            {roleFeatures.includes('Users') && (
+            {hasFeatureAccess('Users') && (
               <Route path='/UserManage' element={<UserManage />} />
             )}
             <Route path='/RoleFeatureManagement' element={<RoleFeatureManagement />} />
-            {roleFeatures.includes('Templates') && (
+            {hasFeatureAccess('Templates') && (
               <Route
                 path='/viewAllHighlights'
                 element={<ViewTemplatesHighlights />}
