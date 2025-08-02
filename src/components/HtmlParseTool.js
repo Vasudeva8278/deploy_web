@@ -136,7 +136,7 @@ function HtmlParseTool() {
 	const handleBack = () => {
 		//console.log(projectId);
 		if (projectId) {
-			navigate(`/projects/${projectId}`, { state: { data: project } });
+			navigate(`/clients`);
 		} else {
 			navigate("/NeoTemplates");
 		}
@@ -1912,7 +1912,7 @@ function HtmlParseTool() {
 
 			setIsTextPatternDetecting(false);
 			setIsAlertOpen(true);
-				setAlertText(`Successfully Extracted ${newMatches.length} text patterns`);
+				setAlertText(`Successfully highlighted ${newMatches.length} underscore group(s) with names: ${newMatches.map(m => m.label).join(', ')}`);
 			} catch (error) {
 				console.error('Error in autoDetectTextPatterns:', error);
 				setIsTextPatternDetecting(false);

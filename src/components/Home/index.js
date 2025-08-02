@@ -146,7 +146,7 @@ const Home = () => {
             <Route path='/NeoTemplates' element={<NeoTemplates />} />
             <Route path='/NeoDocements' element={<NeoDocements />} />
             {hasFeatureAccess('Templates') && (
-              <Route path='/document/:id' element={<DocxToTextConverter />} />
+              <Route path='/document/:id' element={<HtmlParserTool />} />
             )}
               {hasFeatureAccess('Templates') && (
               <Route path='/htmlparser' element={<HtmlParserTool />} />

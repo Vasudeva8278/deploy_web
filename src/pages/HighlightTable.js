@@ -45,17 +45,10 @@ const debounce = (func, wait) => {
   };
 };
 
-const HighlightTable = ({ 
-  highlightsArray, 
-  templateId, 
-  filename,
-  onHighlightChange,
-  onGenerateDocument,
-  parentIsGenerating,
-  parentGenerationProgress,
-  showGenerationModal,
-  onCloseGenerationModal
-}) => {
+
+
+ 
+const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   const navigate = useNavigate();
   const [tableData, setTableData] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,66 +61,28 @@ const HighlightTable = ({
   const contentRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);
-  const [labelPage, setLabelPage] = useState(0);
-  const labelsPerPage = 5; // Show 5 label fields at a time
-  const [docPage, setDocPage] = useState(0);
-  const docsPerPage = 2; // or 3
-  const maxDocPage = Math.max(0, (tableData && Array.isArray(tableData) ? tableData.length : 0) - docsPerPage);
-  const visibleDocs = (tableData && Array.isArray(tableData)) ? tableData.slice(docPage, docPage + docsPerPage) : [];
-  const [blurPage, setBlurPage] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  
-  // Add back necessary state variables
-  const [showAddFieldModal, setShowAddFieldModal] = useState(false);
-  const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldType, setNewFieldType] = useState("text");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
 
   const location = useLocation(); // Gives you access to the current URL including the query string
   const queryParams = new URLSearchParams(location.search);
   const projectId = queryParams.get("projectId");
   const [templateName, setTemplateName] = useState("");
 
-  console.log("HighlightTable props:", { templateId, filename, highlightsArray });
-  console.log("HighlightsArray type:", typeof highlightsArray);
-  console.log("HighlightsArray length:", highlightsArray?.length);
-  console.log("HighlightsArray content:", highlightsArray);
-
-  // Memoized fetch data function with better error handling
-  const fetchData = useCallback(async () => {
+  console.log(templateId, filename);
+  const fetchData = async () => {
     try {
-      setError(null);
-      setIsInitialLoading(true);
-      
-      // Check if we have required parameters
-      if (!templateId) {
-        console.warn("No templateId provided, using template highlights");
-        throw new Error("No template ID");
-      }
-      
       const response = await getDocumentsListByTemplateId(projectId, templateId);
-      
-      // Validate response
-      if (!response) {
-        console.warn("No response from API, using template highlights");
-        throw new Error("No API response");
-      }
-      
       const templateName = response?.templateName;
       setTemplateName(templateName);
       const data = response?.documents;
       setMsDocument(data);
-      console.log("Documents data:", data);
+      console.log(data);
 
       const items =
-        data && data.length > 0
+        data.length > 0
           ? data.map((item) => ({
               id: item._id,
-              image: item?.thumbnail,
+              image: item?.thumbnail, // Assuming `thumbnail` exists in each item
               title: item.fileName,
               description: item.highlights
                 .filter((highlight) => highlight.type === "text")
@@ -137,530 +92,138 @@ const HighlightTable = ({
           : [];
 
       setItems(items);
-      
-      // If documents exist, use them; otherwise use template highlights
-      if (data && data.length > 0) {
-        console.log("Using existing documents:", data);
-        setTableData(data);
-      } else {
-        console.log("No documents found, using template highlights:", highlightsArray);
-        // Process highlightsArray - it's now a direct array, not wrapped
-        const templateHighlights = highlightsArray && Array.isArray(highlightsArray) 
-          ? highlightsArray 
-          : highlightsArray || [];
-        
-        console.log("Template highlights to display:", templateHighlights);
-        
-        // Create a single document structure with all template highlights
-        const templateDocument = {
+      setTableData(
+        data.length > 0
+          ? data
+          : highlightsArray.map((highlight) => ({
+              ...highlight,
           id: uuidv4(),
           templateId,
-          fileName: filename || "Template Document",
-          highlights: templateHighlights.map((highlight) => ({
-            id: highlight.id || highlight._id || uuidv4(),
-            label: highlight.label || highlight.name || `Field_${Math.random().toString(36).substr(2, 9)}`,
-            text: highlight.text || "",
-            type: highlight.type || "text",
-            name: highlight.name || highlight.label || highlight.id
-          }))
-        };
-        
-        console.log("Created template document:", templateDocument);
-        setTableData([templateDocument]);
-      }
+            }))
+      );
     } catch (error) {
       console.error("Error fetching documents:", error);
       
-      // Only show error if we don't have template highlights to fall back to
-      if (!highlightsArray || (Array.isArray(highlightsArray) && highlightsArray.length === 0)) {
-        setError("Failed to load documents. Please try again.");
-        return;
-      }
-      
-      // Fallback to template highlights if API fails
-      console.log("Falling back to template highlights due to error");
-      const templateHighlights = highlightsArray && Array.isArray(highlightsArray) 
-        ? highlightsArray 
-        : highlightsArray || [];
-      
-      const templateDocument = {
+      // Handle 404 error gracefully
+      if (error.response?.status === 404) {
+        console.log("Template not found, using highlights array as fallback");
+        // Use highlightsArray as fallback when template is not found
+        setTableData(
+          highlightsArray.map((highlight) => ({
+            ...highlight,
         id: uuidv4(),
         templateId,
-        fileName: filename || "Template Document",
-        highlights: templateHighlights.map((highlight) => ({
-          id: highlight.id || highlight._id || uuidv4(),
-          label: highlight.label || highlight.name || `Field_${Math.random().toString(36).substr(2, 9)}`,
-          text: highlight.text || "",
-          type: highlight.type || "text",
-          name: highlight.name || highlight.label || highlight.id
-        }))
-      };
-      
-      console.log("Fallback template document:", templateDocument);
-      setTableData([templateDocument]);
-      
-      // Don't show error if fallback is successful
-      console.log("Successfully loaded template highlights as fallback");
-    } finally {
-      setIsInitialLoading(false);
+          }))
+        );
+        setTemplateName("Template (Not Found)");
+        setItems([]);
+      } else {
+        // For other errors, show error message
+        setError("Failed to load documents. Please try again.");
+      }
     }
-  }, [highlightsArray, templateId, projectId, filename]);
+  };
 
   useEffect(() => {
     console.log(templateId);
     fetchData();
-  }, [fetchData]);
-
-  // Clear error when component successfully loads with template highlights
-  useEffect(() => {
-    if (tableData && tableData.length > 0 && highlightsArray && highlightsArray.length > 0) {
-      console.log("Component loaded successfully with template highlights");
-      setError(null);
-    }
-  }, [tableData, highlightsArray]);
-
-  // Monitor highlightsArray changes
-  useEffect(() => {
-    console.log("HighlightsArray changed:", highlightsArray);
-    if (highlightsArray && highlightsArray.length > 0) {
-      console.log("Processing highlightsArray:", highlightsArray);
-      const flattenedHighlights = Array.isArray(highlightsArray) 
-        ? highlightsArray.flat() 
-        : highlightsArray;
-      console.log("Flattened highlights:", flattenedHighlights);
-    }
-  }, [highlightsArray]);
+  }, [highlightsArray, templateId]);
 
   const viewAllDocument = (docId) => {
     navigate(`/docviewall/${templateId}?projectId=${projectId}`);
   };
-
-  // Add custom field functionality
-  const handleAddCustomField = useCallback(() => {
-    if (!newFieldLabel.trim()) {
-      setError("Please enter a field label");
-      return;
-    }
-
-    const newField = {
-      id: uuidv4(),
-      label: newFieldLabel.trim(),
-      text: "",
-      type: newFieldType,
-      name: newFieldLabel.trim(),
-      isCustom: true // Mark as custom field
-    };
-
-    // Add the new field to all documents in tableData
-    const updatedTableData = tableData.map(doc => ({
-      ...doc,
-      highlights: [...doc.highlights, newField]
-    }));
-
-    setTableData(updatedTableData);
-    setNewFieldLabel("");
-    setNewFieldType("text");
-    setShowAddFieldModal(false);
-    setError(null);
-  }, [newFieldLabel, newFieldType, tableData]);
-
-  // Enhanced document generation with progress
-  const handleGenerateDocument = useCallback(async () => {
-    if (!tableData || tableData.length === 0) {
-      setError("No documents to generate");
-      return;
-    }
-
-    try {
-      setIsGenerating(true);
-      setGenerationProgress(0);
-      setError(null);
-
-      // Simulate progress for better UX
-      const progressInterval = setInterval(() => {
-        setGenerationProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      // Generate documents for each row
-      const generationPromises = tableData.map(async (doc, index) => {
-        try {
-          // Update progress based on document processing
-          setGenerationProgress(prev => prev + (10 / tableData.length));
-          
-          // Save document with current highlights
-          if (doc.id) {
-            await updateDocHighlightText(doc.id, doc);
-          }
-          
-          // Export the document
-          const response = await exportDocument(doc.id || doc._id);
-          return response;
-        } catch (error) {
-          console.error(`Error generating document ${index + 1}:`, error);
-          throw error;
-        }
-      });
-
-      const results = await Promise.all(generationPromises);
-      
-      clearInterval(progressInterval);
-      setGenerationProgress(100);
-
-      // Create zip file with all generated documents
-      if (results.length > 1) {
-        const documentIds = tableData.map(doc => doc.id || doc._id);
-        const document = {
-          documentIds,
-          folderName: filename || "Generated Documents",
-          templateId: templateId,
-          projectId: projectId,
-        };
-        
-        await generateZipFile(document, filename || "generated_documents");
-      }
-
-      // Show success message
-      setTimeout(() => {
-        setIsGenerating(false);
-        setGenerationProgress(0);
-        alert("Documents generated successfully!");
-      }, 500);
-
-    } catch (error) {
-      console.error("Error generating documents:", error);
-      setError("Failed to generate documents. Please try again.");
-      setIsGenerating(false);
-      setGenerationProgress(0);
-    }
-  }, [tableData, filename, templateId, projectId]);
-
-  // Memoized computed values for better performance - moved before functions that use them
-  const totalLabels = useMemo(() => tableData[0]?.highlights?.length || 0, [tableData]);
-  const visibleLabelIndexes = useMemo(() => 
-    Array.from({ length: totalLabels }, (_, i) => i), 
-    [totalLabels]
-  );
-
-  // Memoized filtered highlights
-  const filteredHighlights = useMemo(() => 
-    tableData[0]?.highlights?.filter(highlight => {
-      if (!searchTerm) return true;
-      
-      const searchLower = searchTerm.toLowerCase();
-      const labelMatch = highlight.label?.toLowerCase().includes(searchLower);
-      const typeMatch = highlight.type?.toLowerCase().includes(searchLower);
-      const textMatch = highlight.text?.toLowerCase().includes(searchLower);
-      
-      return labelMatch || typeMatch || textMatch;
-    }) || [], 
-    [tableData, searchTerm]
-  );
-
-  // Memoized mapping from filtered index to original index
-  const filteredToOriginalIndex = useMemo(() => 
-    tableData[0]?.highlights?.map((highlight, originalIndex) => {
-      const searchLower = searchTerm.toLowerCase();
-      const labelMatch = highlight.label?.toLowerCase().includes(searchLower);
-      const typeMatch = highlight.type?.toLowerCase().includes(searchLower);
-      const textMatch = highlight.text?.toLowerCase().includes(searchLower);
-      
-      return (labelMatch || typeMatch || textMatch) ? originalIndex : -1;
-    }).filter(index => index !== -1) || [], 
-    [tableData, searchTerm]
-  );
-
-  const filteredLabelIndexes = useMemo(() => 
-    filteredHighlights.map((_, index) => index), 
-    [filteredHighlights]
-  );
-
-  // Enhanced input change handler with custom field support and real-time updates
-  const handleInputChange = useCallback((value, rowIndex, cellIndex) => {
-    console.log("handleInputChange called with:", { value, rowIndex, cellIndex });
-    
-    if (!tableData[0] || !tableData[0].highlights) {
-      console.error("No table data or highlights available");
-      return;
-    }
-    
-    // If cellIndex is false, it's a filename change
-    if (cellIndex === false) {
-      const updatedTableData = [...tableData];
-      updatedTableData[rowIndex].fileName = value;
-      setTableData(updatedTableData);
-      return;
-    }
-    
-    // For highlight changes, we need to find the original index
-    let originalIndex = cellIndex;
-    
-    // If we're using filtered highlights, map back to original index
-    if (searchTerm && filteredToOriginalIndex.length > 0) {
-      originalIndex = filteredToOriginalIndex[cellIndex];
-      if (originalIndex === undefined || originalIndex === -1) {
-        console.error("Could not map filtered index to original index");
-        return;
-      }
-    }
-    
-    if (originalIndex === undefined || originalIndex < 0 || originalIndex >= tableData[0].highlights.length) {
-      console.error("Invalid originalIndex:", originalIndex, "Highlights length:", tableData[0].highlights.length);
-      return;
-    }
-    
+  const handleInputChange = (value, rowIndex, cellIndex) => {
     const updatedTableData = [...tableData];
     try {
-      const highlightToUpdate = updatedTableData[0].highlights[originalIndex];
-      if (highlightToUpdate) {
-        // Validate the value before updating
-        const sanitizedValue = typeof value === 'string' ? value.trim() : String(value || '');
-        console.log(`Updating highlight ${originalIndex} (${highlightToUpdate.label}) with value:`, sanitizedValue);
-        
-        highlightToUpdate.text = sanitizedValue;
-        
-        // If this is a custom field, update the label if needed
-        if (highlightToUpdate.isCustom && !highlightToUpdate.label) {
-          highlightToUpdate.label = `Custom_${Math.random().toString(36).substr(2, 9)}`;
-        }
-        
-        // Call parent's onHighlightChange function for real-time updates
-        if (onHighlightChange) {
-          onHighlightChange(highlightToUpdate.id, sanitizedValue);
-        }
-        
-        setTableData(updatedTableData);
-        console.log("Table data updated successfully");
-      } else {
-        console.error("Highlight not found at index:", originalIndex);
-        return;
-      }
+      updatedTableData[rowIndex].highlights[cellIndex].text = value;
     } catch (err) {
-      console.error("Error updating highlight:", err);
-      updatedTableData[0].fileName = value;
-      setTableData(updatedTableData);
+      updatedTableData[rowIndex].fileName = value;
     }
-  }, [tableData, onHighlightChange, searchTerm, filteredToOriginalIndex]);
+    setTableData(updatedTableData);
+  };
 
-  // Optimized delete document handler with better error handling
-  const handleDeleteDocument = useCallback(async (doc) => {
-    setBlurPage(true);
+  const handleDeleteDocument = async (doc) => {
     const doc_id = doc.id ? doc.id : doc._id;
+    console.log("Deleting document:", doc_id, "Project ID:", projectId);
     
     try {
       const response = await deleteDocument(projectId, doc_id);
       if (response) {
-        // Remove the deleted row from tableData
-        setTableData(prev =>
-          prev.filter(row => (row.id || row._id) !== doc_id)
-        );
+        console.log("Document deleted successfully");
+        fetchData(); // Refresh the data after successful deletion
       }
     } catch (error) {
-      console.error("Delete failed", error);
-      setError("Failed to delete document. Please try again.");
-    } finally {
-      setBlurPage(false);
+      console.error("Delete failed:", error);
+      
+      // Handle specific error types
+      if (error.response?.status === 404) {
+        setError("Document not found. It may have already been deleted.");
+      } else if (error.response?.status === 403) {
+        setError("You don't have permission to delete this document.");
+      } else if (error.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else if (error.code === 'ERR_NETWORK') {
+        setError("Network error. Please check your connection.");
+      } else {
+        setError("Failed to delete document. Please try again.");
+      }
     }
-  }, [projectId]);
-
-  const handleViewDocument = useCallback(async (doc) => {
+  };
+  const handleViewDocument = async (doc) => {
     const doc_id = doc.id ? doc.id : doc._id;
     console.log("viewing document", doc_id);
     navigate(`/docview/${doc_id}`);
-  }, [navigate]);
+  };
 
-  const displayListofDocuments = useCallback(async () => {
+  const displayListofDocuments = async () => {
     console.log("list of all document");
     navigate(`/listview`, { state: { data: tableData } });
-  }, [navigate, tableData]);
+  };
 
-  const changeImage = useCallback((event, rowIndex, cellIndex) => {
-    if (!tableData[0] || !tableData[0].highlights) {
-      console.error("No table data or highlights available");
-      return;
-    }
-    
-    // Get the original index if we're searching, otherwise use cellIndex directly
-    const originalIndex = searchTerm ? filteredToOriginalIndex[cellIndex] : cellIndex;
-    
-    if (originalIndex === undefined || originalIndex < 0 || originalIndex >= tableData[0].highlights.length) {
-      console.error("Invalid originalIndex:", originalIndex, "Highlights length:", tableData[0].highlights.length);
-      return;
-    }
-    
-    const highlight = tableData[0].highlights[originalIndex];
-    if (!highlight) {
-      console.error("Highlight not found at index:", originalIndex);
-      return;
-    }
-    
+  const changeImage = (event, rowIndex, cellIndex) => {
     setIsModalOpen(true);
-    setHighlight(highlight);
-    setCurrentDoc(tableData[0]);
-    setRowNo(0); // Always use 0 since we only have one document
-    setCellNo(originalIndex); // Use original index for saving
-  }, [tableData, searchTerm]);
+    //console.log(tableData[rowIndex].highlights[cellIndex]);
+    setHighlight(tableData[rowIndex].highlights[cellIndex]);
+    //console.log(tableData[rowIndex]);
+    setCurrentDoc(tableData[rowIndex]);
+    setRowNo(rowIndex);
+    setCellNo(cellIndex);
+  };
 
-  // Debounced save function to prevent multiple rapid API calls
-  const debouncedSave = useMemo(
-    () => debounce(async (doc_id, updatedRow) => {
-      if (isUpdating) return; // Prevent concurrent updates
-      
-      // Validate data before sending to API
-      if (!doc_id || !updatedRow) {
-        console.error('Invalid data for API call:', { doc_id, updatedRow });
-        return;
-      }
-
-      // Validate highlights structure
-      if (!updatedRow.highlights || !Array.isArray(updatedRow.highlights)) {
-        console.error('Invalid highlights structure:', updatedRow.highlights);
-        return;
-      }
-
-      try {
-        setIsUpdating(true);
-        console.log('Sending update to API:', { doc_id, updatedRow });
-        
-        const response = await updateDocHighlightText(doc_id, updatedRow);
-        if (response) {
-          console.log("Successfully updated document");
-        } else {
-          console.warn("API returned null/undefined - update may have failed");
-        }
-      } catch (error) {
-        console.error("Failed to update document:", error);
-        
-        // Don't show error to user for every failed save - just log it
-        // This prevents spam of error messages during typing
-        if (error.response?.status === 500) {
-          console.warn("Server error (500) - will retry on next save");
-          // Store the failed update for potential retry later
-          // For now, just log it and continue
-        } else {
-          // Only show user error for non-500 errors
-          setError("Failed to save changes. Please try again.");
-        }
-      } finally {
-        setIsUpdating(false);
-      }
-    }, 1000), // 1 second debounce
-    [isUpdating]
-  );
-
-  // Add a retry mechanism for failed saves
-  const retryFailedSaves = useCallback(() => {
-    // This could be implemented to retry failed saves
-    // For now, just clear any error state
-    setError(null);
-  }, []);
-
-  const saveTableOrImage = useCallback(async (value) => {
-    if (!tableData[0] || !tableData[0].highlights) {
-      console.error("No table data or highlights available");
-      return;
-    }
-    
-    if (cellNo === undefined || cellNo < 0 || cellNo >= tableData[0].highlights.length) {
-      console.error("Invalid cellNo:", cellNo, "Highlights length:", tableData[0].highlights.length);
-      return;
-    }
-    
+  const saveTableOrImage = async (value) => {
     const updatedTableData = [...tableData];
-    const highlightToUpdate = updatedTableData[0].highlights[cellNo];
-    
-    if (!highlightToUpdate) {
-      console.error("Highlight not found at index:", cellNo);
-      return;
-    }
-    
-    highlightToUpdate.text = value;
-    const updatedRow = updatedTableData[0];
-    const updatedHighlight = highlightToUpdate;
-    
-    console.log("Updated highlight:", updatedHighlight);
-    console.log("Updated row:", updatedRow);
-    
+    updatedTableData[rowNo].highlights[cellNo].text = value;
+    const updatedRow = updatedTableData[rowNo];
+    const updatedHighlight = updatedTableData[rowNo].highlights[cellNo];
+    //  updatedRow.content = await editDocumentContent(conversionStatus,updatedHighlight)
+    console.log(updatedRow);
     const doc_id = updatedRow.id ? updatedRow.id : updatedRow._id;
-    
-    // Use debounced save to prevent rapid API calls
-    debouncedSave(doc_id, updatedRow);
-  }, [tableData, cellNo, debouncedSave]);
+    const response = await updateDocHighlightText(doc_id, updatedRow);
+    if (response) fetchData();
+  };
 
-  // Optimized blur handler with better error handling
-  const handleBlur = useCallback(async (rowIndex, cellIndex) => {
-    console.log("handleBlur called with:", { rowIndex, cellIndex });
-    
-    if (!tableData[0] || !tableData[0].highlights) {
-      console.error("No table data or highlights available");
-      return;
-    }
-    
-    // If cellIndex is false, it's a filename change - no need to save
-    if (cellIndex === false) {
-      return;
-    }
-    
-    // For highlight changes, we need to find the original index
-    let originalIndex = cellIndex;
-    
-    // If we're using filtered highlights, map back to original index
-    if (searchTerm && filteredToOriginalIndex.length > 0) {
-      originalIndex = filteredToOriginalIndex[cellIndex];
-      if (originalIndex === undefined || originalIndex === -1) {
-        console.error("Could not map filtered index to original index");
-        return;
-      }
-    }
-    
-    if (originalIndex === undefined || originalIndex < 0 || originalIndex >= tableData[0].highlights.length) {
-      console.error("Invalid originalIndex:", originalIndex, "Highlights length:", tableData[0].highlights.length);
-      return;
-    }
-    
-    const updatedRow = { ...tableData[0] }; // Create a copy to avoid mutations
-    const updatedHighlight = updatedRow.highlights[originalIndex];
-    
-    if (!updatedHighlight) {
-      console.error("Highlight not found at index:", originalIndex);
-      return;
-    }
-
-    // Validate the highlight data before sending
-    if (!updatedHighlight.id || !updatedHighlight.label) {
-      console.error("Invalid highlight data:", updatedHighlight);
-      return;
-    }
-    
-    console.log("Updated row:", updatedRow);
-    console.log("Updated highlight:", updatedHighlight);
-    
+  const handleBlur = async (rowIndex, cellIndex) => {
+    const updatedRow = tableData[rowIndex];
+    const updatedHighlight = updatedRow.highlights[cellIndex];
+    // updatedRow.content = await editDocumentContent(conversionStatus,updatedHighlight)
+    console.log(updatedRow);
     const doc_id = updatedRow.id ? updatedRow.id : updatedRow._id;
-    
-    // Only save if we have a valid document ID
-    if (!doc_id) {
-      console.error("No valid document ID found");
-      return;
-    }
-    
-    // Use debounced save to prevent rapid API calls
-    debouncedSave(doc_id, updatedRow);
-  }, [tableData, debouncedSave, searchTerm, filteredToOriginalIndex]);
+    const response = await updateDocHighlightText(doc_id, updatedRow);
+    console.log(response);
+    //setTableData([...tableData]);
+    fetchData();
+    // }
+  };
 
-  const handleBack = useCallback(() => {
+  const handleBack = () => {
     navigate("/Neo");
-  }, [navigate]);
+  };
 
-  const handleExportTemplate = useCallback((row) => {
+  const handleExportTemplate = (row) => {
     handleExport(templateId, row);
-  }, [templateId]);
+  };
 
-  const handleExport = useCallback(async (row) => {
+  const handleExport = async (row) => {
     try {
       const response = exportDocument(row._id);
       const blob = new Blob([response.data], {
@@ -676,21 +239,17 @@ const HighlightTable = ({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading document:", error);
-      setError("Failed to download document. Please try again.");
     }
-  }, []);
+  };
 
-  const handleDocument = useCallback((rowIndex, cellIndex) => {
-    if (!tableData[0] || !tableData[0].content) {
-      console.error("No table data or content available");
-      return;
-    }
-    setConversionStatus(tableData[0].content);
-  }, [tableData]);
+  const handleDocument = (rowIndex, cellIndex) => {
+    setConversionStatus(tableData[rowIndex].content);
+  };
 
-  const handleAddRow = useCallback(async () => {
+  const handleAddRow = async () => {
     if (!tableData[0] || !tableData[0].highlights) {
       console.error("No table data or highlights available");
+      setError("No template data available to create new document");
       return;
     }
     
@@ -711,24 +270,24 @@ const HighlightTable = ({
       const { id } = response;
       newCells.id = id;
       setTableData([...tableData, newCells]);
+      setError(null); // Clear any previous errors
     } catch (error) {
       console.error("Error adding new row:", error);
+      
+      // Handle specific error types
+      if (error.response?.status === 404) {
+        setError("Template not found. Please check if the template exists.");
+      } else if (error.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else if (error.code === 'ERR_NETWORK') {
+        setError("Network error. Please check your connection.");
+      } else {
       setError("Failed to add new document. Please try again.");
     }
-  }, [tableData, templateId]);
-
-  const handleExportAll = useCallback(async (event) => {
-    event.preventDefault();
-    
-    if (!msDocument || msDocument.length === 0) {
-      setError("No documents to export.");
-      return;
     }
-    
-    try {
-      setIsLoading(true);
-      setError(null);
-      
+  };
+  const handleExportAll = async (event) => {
+    event.preventDefault();
       const documentIds = msDocument.map((doc) => doc._id);
       const document = {
         documentIds,
@@ -736,68 +295,20 @@ const HighlightTable = ({
         templateId: templateId,
         projectId: projectId,
       };
-      
+    try {
+      setIsLoading(true);
       const response = await generateZipFile(document, filename);
-      if (response === "Success") {
-        console.log("Export successful");
-      } else {
-        setError("Export failed. Please try again.");
-      }
+      if (response === "Success") setIsLoading(false);
     } catch (error) {
-      console.error("Export error:", error);
-      setError("Failed to export documents. Please try again.");
-    } finally {
-      setIsLoading(false);
+      console.error(error);
+      console.log("Failed to zip the documents.");
     }
-  }, [msDocument, filename, templateId, projectId]);
-
-  const handleTextEdit = useCallback((index, text) => {
-    const updatedHighlights = [...tableData[0].highlights];
-    updatedHighlights[index].text = text;
-    setTableData(prev => ({ ...prev, highlights: updatedHighlights }));
-  }, [tableData]);
-
-  const handleTableEdit = useCallback((highlight) => {
-    setHighlight(highlight);
-    setIsModalOpen(true);
-  }, []);
-
-  const handleImageEdit = useCallback((highlight) => {
-    setHighlight(highlight);
-    setIsModalOpen(true);
-  }, []);
-
-  const handleRemoveHighlight = useCallback(async (id) => {
-    const updatedHighlights = tableData[0].highlights.filter(h => h.id !== id);
-    setTableData(prev => ({ ...prev, highlights: updatedHighlights }));
-    
-    // Optionally, update the document in the backend
-    const doc_id = tableData[0].id;
-    if (doc_id) {
-      try {
-        await updateDocHighlightText(doc_id, { highlights: updatedHighlights });
-        fetchData();
-      } catch (error) {
-        console.error("Error removing highlight:", error);
-        setError("Failed to remove highlight. Please try again.");
-      }
-    }
-  }, [tableData, fetchData]);
+  };
 
   return (
-    <div className={`w-full${blurPage ? ' blur-sm pointer-events-none' : ''}`}>
-      {/* Initial Loading Indicator */}
-      {isInitialLoading && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-            <span className="text-sm text-blue-800">Loading template highlights...</span>
-          </div>
-        </div>
-      )}
-
-      {/* Error Display - only show if not loading and we have an error */}
-      {error && !isInitialLoading && (
+    <div className='w-full'>
+      {/* Error Display */}
+      {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -808,13 +319,7 @@ const HighlightTable = ({
             <div className="ml-3 flex-1">
               <p className="text-sm text-red-800">{error}</p>
             </div>
-            <div className="ml-auto pl-3 flex items-center space-x-2">
-              <button
-                onClick={retryFailedSaves}
-                className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200"
-              >
-                Retry
-              </button>
+            <div className="ml-auto pl-3">
               <button
                 onClick={() => setError(null)}
                 className="text-red-400 hover:text-red-600"
@@ -824,16 +329,6 @@ const HighlightTable = ({
                 </svg>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Loading Indicator */}
-      {isUpdating && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-            <span className="text-sm text-blue-800">Saving changes...</span>
           </div>
         </div>
       )}
@@ -849,9 +344,9 @@ const HighlightTable = ({
           <div className='w-1/2 text-gray-400 rounded-lg mr-4'>
             <input
               type='text'
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder='Search by label, table, or image...'
+              value='Search'
+              //onChange={handleInputChange}
+              placeholder='Search...'
               className='px-4 py-2 w-full max-w-md border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
             />
           </div>
@@ -863,23 +358,10 @@ const HighlightTable = ({
               Preview
             </button>
             <button
-              className='px-2 py-2 bg-green-500 border-green-500 text-white rounded hover:bg-green-600 transition-colors mr-2'
-              onClick={() => setShowAddFieldModal(true)}
-              title="Add custom field"
-            >
-              + Add Field
-            </button>
-            <button
               className='px-2 py-2 bg-indigo-500 border-blue-500 text-white rounded hover:bg-blue-600 transition-colors mr-2'
-              onClick={onGenerateDocument || handleGenerateDocument}
-              disabled={isGenerating || parentIsGenerating || isLoading}
+              onClick={handleExportAll}
             >
-              {isGenerating || parentIsGenerating ? (
-                <span className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {parentGenerationProgress || generationProgress}%
-                </span>
-              ) : isLoading ? 'Generating...' : 'Generate Doc'}
+              Generate
             </button>
             <button
               className='px-2 py-2 bg-indigo-500 border-blue-500 text-white rounded hover:bg-blue-600 transition-colors'
@@ -892,26 +374,19 @@ const HighlightTable = ({
             <TooltipIcon>
               <ul className='list-disc pl-5 space-y-2 flex-grow'>
                 <li>
-                  Click the <strong>"+ Add Field"</strong> button to create custom fields for your documents.
-                </li>
-                <li>
-                  <strong>Edit values directly</strong> in the table cells - changes are applied in real-time.
+                  Please click on the + sign to add more columns/rows to the
+                  tables.
                 </li>
                 <li>
                   Variable names can be edited by double-clicking on the name.
                   (The allotted space will remain unchanged)
                 </li>
                 <li>
-                  Click on <strong>"Generate Doc"</strong> button to create documents with your custom values and changes.
+                  Click on Generate button below to get the documents prepared
+                  using your standard format.
                 </li>
                 <li>
                   The documents can be auto formatted in the preview window.
-                </li>
-                <li>
-                  Custom fields are automatically saved and included in document generation.
-                </li>
-                <li>
-                  <strong>Real-time updates:</strong> Your changes are tracked and applied to the final document.
                 </li>
               </ul>
             </TooltipIcon>{" "}
@@ -919,15 +394,13 @@ const HighlightTable = ({
         </div>
       </div>
       <div className='flex w-full'>
-        <div className='w-full bg-white rounded-lg'>
+        <div className='w-full bg-white rounded-lg' style={{ height: '500px' }}>
           {tableData.length > 0 && (
-            <div className="w-full h-[500px] overflow-hidden border border-gray-200 rounded-lg" style={{height: '500px'}}>
-              <div className="h-full overflow-y-auto" style={{height: '100%', overflowY: 'auto'}}>
-                <table
-                  id='doc-table'
-                  className='w-full table-fixed'
-                  style={{width: '100%'}}
-                >
+            <div className="w-full h-full overflow-y-auto">
+              <table
+                id='doc-table'
+                className='bg-white shadow-md rounded-lg border-collapse w-full'
+              >
                 <thead className="sticky top-0 bg-gray-300 z-10">
                   <tr className='bg-gray-300 text-gray-700 text-sm font-normal'>
                     <TableHeader
@@ -946,12 +419,17 @@ const HighlightTable = ({
                               handleInputChange(e.target.value, rowIndex, false)
                             }
                             onBlur={() => handleBlur(rowIndex, false)}
-                            className='h-8 px-2 bg-transparent rounded focus:ring-2 focus:ring-blue-500'
+                            className='h-4 px-2 bg-transparent rounded focus:ring-2 focus:ring-blue-500 max-w-32 truncate'
+                            style={{
+                              textOverflow: 'ellipsis',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={row.fileName} // Show full name on hover
                           />
                           <div className='flex items-center'>
                             {tableData.length > 1 && (
                               <button
-                                type="button"
                                 className='bg-transparent text-red-400 rounded hover:bg-white transition-colors m-2 flex items-center'
                                 onClick={() => handleDeleteDocument(row)}
                               >
@@ -977,107 +455,124 @@ const HighlightTable = ({
                     ))}
                   </tr>
                 </thead>
-                <tbody className="overflow-y-auto">
-                {filteredLabelIndexes.map((cellIndex) => (
-                  <tr key={cellIndex} className='p-1 m-1'>
-                    <td className='p-1 m-1 border-r border-gray-300'>
-                      <div className='border border-gray-300 rounded p-1 pl-4 m-1 text-sm'>
-                        {filteredHighlights[cellIndex].label}
-                      </div>
-                    </td>
-                    {tableData.map((row, rowIndex) => (
-                      <td
-                        key={rowIndex}
-                        className='p-1 m-1 border-r border-gray-300 text-sm'
-                      >
-                        <div className='border border-gray-300 rounded'>
-                          {filteredHighlights[cellIndex].type === 'text' ? (
-                            <input
-                              type='text'
-                              value={filteredHighlights[cellIndex].text}
-                              onChange={(e) =>
-                                handleInputChange(e.target.value, rowIndex, cellIndex)
-                              }
-                              onBlur={() => handleBlur(rowIndex, cellIndex)}
-                              onFocus={() => handleDocument(rowIndex, cellIndex)}
-                              className='rounded focus:ring-2 focus:ring-blue-500 w-full m-0 p-1 pl-4'
-                            />
-                          ) : filteredHighlights[cellIndex].type === 'image' ? (
-                            <>
-                              {" "}
-                              {filteredHighlights[cellIndex].text !== "" ? (
-                                <>
-                                  <span
-                                    className='font-semibold hidden'
-                                    dangerouslySetInnerHTML={{
-                                      __html: filteredHighlights[cellIndex].text,
-                                    }}
-                                  ></span>{" "}
-                                  <button
-                                    onClick={(e) =>
-                                      changeImage(e, rowIndex, cellIndex)
-                                    }
-                                    className='mt-2'
-                                  >
-                                    <img src={imageIcon} />
-                                  </button>
-                                </>
-                              ) : (
-                                <button>
-                                  <input
-                                    type='file'
-                                    name='selectedImage'
-                                    onChange={(e) =>
-                                      changeImage(
-                                        e.target.value,
-                                        rowIndex,
-                                        cellIndex
-                                      )
-                                    }
-                                    accept='image/*'
-                                    className='mt-2'
-                                  />
-                                </button>
-                              )}{" "}
-                            </>
-                          ) : filteredHighlights[cellIndex].type === 'table' ? (
-                            <>
-                              {" "}
-                              {filteredHighlights[cellIndex].text !== "" ? (
-                                <>
-                                  <span
-                                    className='font-normal hidden'
-                                    dangerouslySetInnerHTML={{
-                                      __html: filteredHighlights[cellIndex].text,
-                                    }}
-                                  ></span>
-                                  <button
-                                    onClick={(e) =>
-                                      changeImage(e, rowIndex, cellIndex)
-                                    }
-                                    className='mt-2'
-                                  >
-                                    <img src={tableIcon} />
-                                  </button>
-                                </>
-                              ) : (
-                                <button>+add</button>
-                              )}{" "}
-                            </>
-                          ) : (
-                            " "
-                          )}
+                <tbody>
+                  {tableData[0].highlights.map((cell, cellIndex) => (
+                    <tr key={cellIndex} className=' p-1 m-1'>
+                      <td className='p-1 m-1 border-r border-gray-300'>
+                        <div className='border border-gray-300 rounded p-1 pl-4 m-1 text-sm'>
+                          {cell.label}
                         </div>
                       </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                      {tableData.map((row, rowIndex) => (
+                        <td
+                          key={rowIndex}
+                          className='  p-1 m-1 border-r border-gray-300 text-sm'
+                        >
+                          <div className='border border-gray-300 rounded   '>
+                            {tableData[rowIndex].highlights[cellIndex].type ===
+                            "text" ? (
+                              <input
+                                type='text'
+                                value={
+                                  tableData[rowIndex].highlights[cellIndex].text
+                                }
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    e.target.value,
+                                    rowIndex,
+                                    cellIndex
+                                  )
+                                }
+                                onBlur={() => handleBlur(rowIndex, cellIndex)}
+                                onFocus={() =>
+                                  handleDocument(rowIndex, cellIndex)
+                                }
+                                className=' rounded focus:ring-2 focus:ring-blue-500 w-full m-0 p-1 pl-4'
+                              />
+                            ) : tableData[rowIndex].highlights[cellIndex].type ===
+                              "image" ? (
+                              <>
+                                {" "}
+                                {tableData[rowIndex].highlights[cellIndex]
+                                  .text !== "" ? (
+                                  <>
+                                    <span
+                                      className='font-semibold hidden'
+                                      dangerouslySetInnerHTML={{
+                                        __html:
+                                          tableData[rowIndex].highlights[
+                                            cellIndex
+                                          ].text,
+                                      }}
+                                    ></span>{" "}
+                                    <button
+                                      onClick={(e) =>
+                                        changeImage(e, rowIndex, cellIndex)
+                                      }
+                                      className='mt-2'
+                                    >
+                                      <img src={imageIcon} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button>
+                                    <input
+                                      type='file'
+                                      name='selectedImage'
+                                      onChange={(e) =>
+                                        changeImage(
+                                          e.target.value,
+                                          rowIndex,
+                                          cellIndex
+                                        )
+                                      }
+                                      accept='image/*'
+                                      className='mt-2'
+                                    />
+                                  </button>
+                                )}{" "}
+                              </>
+                            ) : tableData[rowIndex].highlights[cellIndex].type ===
+                              "table" ? (
+                              <>
+                                {" "}
+                                {tableData[rowIndex].highlights[cellIndex]
+                                  .text !== "" ? (
+                                  <>
+                                    <span
+                                      className='font-normal hidden'
+                                      dangerouslySetInnerHTML={{
+                                        __html:
+                                          tableData[rowIndex].highlights[
+                                            cellIndex
+                                          ].text,
+                                      }}
+                                    ></span>
+                                    <button
+                                      onClick={(e) =>
+                                        changeImage(e, rowIndex, cellIndex)
+                                      }
+                                      className='mt-2'
+                                    >
+                                      <img src={tableIcon} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button>+add</button>
+                                )}{" "}
+                              </>
+                            ) : (
+                              " "
+                            )}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-          
           <div
             ref={contentRef}
             id='hiddenRenderDoc'
@@ -1120,112 +615,18 @@ const HighlightTable = ({
               initialText={highlight.text}
             />
           </div>
-          
-          {/* Custom Field Modal */}
-          <NeoModal isOpen={showAddFieldModal} onClose={() => setShowAddFieldModal(false)}>
-            <div className="p-6 bg-white rounded-lg shadow-lg max-w-md mx-auto">
-              <div className="text-center">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Add Custom Field
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="fieldLabel" className="block text-sm font-medium text-gray-700 mb-1">
-                      Field Label
-                    </label>
-                    <input
-                      type="text"
-                      id="fieldLabel"
-                      value={newFieldLabel}
-                      onChange={(e) => setNewFieldLabel(e.target.value)}
-                      placeholder="Enter field name"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="fieldType" className="block text-sm font-medium text-gray-700 mb-1">
-                      Field Type
-                    </label>
-                    <select
-                      id="fieldType"
-                      value={newFieldType}
-                      onChange={(e) => setNewFieldType(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="text">Text</option>
-                      <option value="table">Table</option>
-                      <option value="image">Image</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex justify-center space-x-3 mt-6">
-                  <button
-                    onClick={() => setShowAddFieldModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAddCustomField}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Add Field
-                  </button>
-                </div>
-              </div>
-            </div>
-          </NeoModal>
-          
-          {/* Generation Progress Modal */}
-          <NeoModal isOpen={showGenerationModal} onClose={onCloseGenerationModal}>
-            <div className="p-6 bg-white rounded-lg shadow-lg max-w-md mx-auto">
-              <div className="text-center">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Generating Document
-                </h3>
-                <div className="mb-4">
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-                      style={{ width: `${parentGenerationProgress || generationProgress}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    {parentGenerationProgress || generationProgress}% Complete
-                  </p>
-                </div>
-                <p className="text-sm text-gray-500">
-                  Applying your changes and generating the document...
-                </p>
-              </div>
-            </div>
-          </NeoModal>
         </div>
       </div>
       <div className='flex ml-12'>
         <div className='mt-4'>
-          <div className="flex items-center gap-x-4 overflow-x-auto py-4">
-            {tableData.map((doc) => (
-              <div
-                key={doc.id}
-                className="relative w-24 h-28 min-w-[6rem] bg-white border-2 border-blue-400 rounded-xl flex items-center justify-center mx-2"
-              >
-                {/* Eye icon in top-right */}
-                <button
-                  className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
-                  onClick={() => handleViewDocument(doc)}
-                  title="Preview"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-                {/* Document Name */}
-                <span className="text-blue-600 font-semibold text-center text-sm">Doc Name</span>
-              </div>
-            ))}
-          </div>
+          <Carousel
+            items={items}
+            slidesToShow={6}
+            itemWidth={150}
+            carouselWidth={800}
+            projectId={projectId}
+            templateId={templateId}
+          />
         </div>
       </div>
       {/*  <div className="col-span-1 bg-white rounded-lg shadow-md  ">
@@ -1234,9 +635,7 @@ const HighlightTable = ({
         <Instructions handleExportAll={handleExportAll} viewAllDocument={viewAllDocument} displayListofDocuments={displayListofDocuments} />
       </div>*/}
     </div>
-  
   );
 };
 
 export default HighlightTable;
-  

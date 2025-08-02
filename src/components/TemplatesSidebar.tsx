@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { FileText, Trash2, Plus, Folder, FolderOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getAllProjects } from '../services/projectApi';
 import { AuthContext } from '../context/AuthContext';
 import { useLocation, useParams } from 'react-router-dom';
-import { getAllTemplates } from "../services/templateApi";
 
 interface TemplatesSidebarProps {
   // Remove isVisible prop since it's now permanent
@@ -41,9 +40,6 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
   const location = useLocation();
   const { id: activeProjectId } = useParams();
 
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(true);
-  const [templateError, setTemplateError] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState("all");
 
   // Function to check if a project is active based on current route
@@ -168,21 +164,6 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
     }
   }, [projects, isRestrictedUser]);
 
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const res = await getAllTemplates();
-        setTemplates(res);
-      } catch (err) {
-        setTemplateError('Failed to fetch templates');
-        setTemplates([]);
-      } finally {
-        setLoadingTemplates(false);
-      }
-    };
-    fetchTemplates();
-  }, []);
-
   const toggleProject = (projectId: string, event: React.MouseEvent) => {
     // Stop propagation to prevent project navigation when clicking the expand arrow
     event.stopPropagation();
@@ -211,8 +192,6 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
     // Navigate to document view page
     navigate(`/NeoTemplates/${documentId}`);
   };
-
- 
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
@@ -395,9 +374,6 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
                       <span className="text-xs font-medium flex-1 truncate">
                         {project.projectName}
                       </span>
-                      {project.documents.length > 0 && (
-                        <span className="text-xs text-gray-500 ml-1">({project.documents.length})</span>
-                      )}
                     </>
                   )}
                 </div>

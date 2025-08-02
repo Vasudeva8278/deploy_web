@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import EditModal from "./EditModal";
 import {
@@ -23,28 +23,6 @@ import {
 import StyleComponents from "../StyleComponents";
 import LabelsComponent from "./LabelsComponent";
 import { getExistingLabelsInProject } from "../../services/projectApi";
-
-// Suppress Chrome extension errors
-window.addEventListener('error', function(e) {
-    if (e.message.includes('Timeout') && 
-        e.filename.includes('chrome-extension')) {
-        e.preventDefault();
-        return false;
-    }
-});
-
-// Debounce function for performance optimization
-const debounce = (func, wait) => {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-};
 
 function DocxToTextConverter() {
 	const navigate = useNavigate();
@@ -86,29 +64,16 @@ function DocxToTextConverter() {
 	const [isAlertOpen, setIsAlertOpen] = useState(false);
 	const [alertText, setAlertText] = useState("");
 	const [isResetAll, setIsResetAll] = useState(false);
-	const location = useLocation();
+	const location = useLocation(); // Gives you access to the current URL including the query string
 	const queryParams = new URLSearchParams(location.search);
 	const projectId = queryParams.get("projectId");
-	
-	// Log the URL and projectId for debugging
-	console.log('Current URL:', location.search);
-	console.log('Extracted projectId:', projectId);
-	
 	const [editTemplate, setEditTemplate] = useState(true);
 	const [rightSectionVisible, setRightSectionVisible] = useState(false);
 	const [isContentTouched, setIsContentTouched] = useState(false);
-	const [existingLabels, setExistingLabels] = useState([]);
+	const [existingLabels, setExistingLabels] = useState([]); // Store fetched labels
 
-	// Memoized fetchLabels function with error handling
-	const fetchLabels = useCallback(async (projectId) => {
+	const fetchLabels = async (projectId) => {
 		console.log(projectId);
-		
-		// Check if projectId is null or undefined
-		if (!projectId) {
-			console.warn('ProjectId is null or undefined, skipping fetchLabels');
-			return;
-		}
-		
 		try {
 			const result = await getExistingLabelsInProject(projectId);
 
@@ -123,58 +88,39 @@ function DocxToTextConverter() {
 			console.log("Existing Labels: ", result);
 		} catch (error) {
 			console.error("Error updating templates: ", error);
-			// Show user-friendly error message
-			setIsAlertOpen(true);
-			setAlertText("Failed to load existing labels. Please try refreshing the page.");
 		}
-	}, []);
+	};
 
-	// Memoized fetchDocument function with error handling
-	const fetchDocument = useCallback(async () => {
-		if (!id) return;
-		
-		try {
-			setIsLoading(true);
+	useEffect(() => {
+		const fetchDocument = async () => {
+			if (id) {
+				try {
 					const response = await getTemplatesById(projectId, id);
 					const result = response;
 					setTemplateId(result._id);
 					setConversionStatus(result.content);
-			setHighlights(result.highlights || []);
+					setHighlights(result.highlights);
 					setFileName(result.fileName);
-			setProject(result.projectId);
+					setProject(result.projectId); // to get complete project Object to pass in state.
 				} catch (error) {
 					console.error("Failed to fetch document", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to load document. Please check your connection and try again.");
-		} finally {
-			setIsLoading(false);
 				}
-	}, [id, projectId]);
+			}
+		};
 
-	useEffect(() => {
 		fetchDocument();
 		fetchLabels(projectId);
-	}, [fetchDocument, fetchLabels, projectId]);
+	}, [id]);
 
-	// Debounced content change handler
-	const handleContentChange = useCallback(
-		debounce(() => {
+	const handleContentChange = () => {
 		setIsContentTouched(true);
-		}, 300),
-		[]
-	);
-
+	};
 	const handleBack = () => {
-		try {
+		//console.log(projectId);
 		if (projectId) {
 			navigate(`/projects/${projectId}`, { state: { data: project } });
 		} else {
 			navigate("/Neo");
-			}
-		} catch (error) {
-			console.error("Navigation error:", error);
-			// Fallback navigation
-			window.history.back();
 		}
 	};
 
@@ -183,17 +129,12 @@ function DocxToTextConverter() {
 	};
 
 	const createHighlightSpan = (elementType, id, content) => {
-		try {
 		const ele = document.createElement(elementType);
 		ele.id = id;
 		ele.setAttribute("data-highlight-id", id);
 		ele.classList.add("highlight");
 		ele.innerHTML = content;
 		return ele;
-		} catch (error) {
-			console.error("Error creating highlight span:", error);
-			return null;
-		}
 	};
 
 	const generateHighlightId = () => {
@@ -204,7 +145,6 @@ function DocxToTextConverter() {
 	const handleImageHighlighting = async (imgData) => {
 		if (!imgData) return;
 
-		try {
 		// Check if the parent element is a div and has data-highlight-id
 		const parentElement = imgData.parentNode;
 		console.log(parentElement);
@@ -239,12 +179,6 @@ function DocxToTextConverter() {
 				highlightId,
 				imgData.outerHTML
 			);
-				
-				if (!div) {
-					console.error("Failed to create highlight span");
-					return null;
-				}
-				
 			div.style.border = "1px solid blue";
 			div.style.boxSizing = "border-box";
 			div.style.display = "inline-block";
@@ -271,18 +205,11 @@ function DocxToTextConverter() {
 			}
 			console.log(parentElement.innerHTML);
 			return parentElement?.innerHTML;
-			}
-		} catch (error) {
-			console.error("Error in handleImageHighlighting:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to highlight image. Please try again.");
-			return null;
 		}
 	};
 
 	const handleTextHighlight = async () => {
 		if (addLabel) {
-			try {
 			if (isTextSelectedRef.current) {
 				setIsAlertOpen(true);
 				setAlertText(
@@ -340,18 +267,13 @@ function DocxToTextConverter() {
 			isTextSelectedRef.current = true;
 			selection.removeAllRanges();
 			setSelection(selection);
-			} catch (error) {
-				console.error("Error in handleTextHighlight:", error);
-				setIsAlertOpen(true);
-				setAlertText("Failed to highlight text. Please try again.");
 		}
-		}
+		// console.log("new Highlight", newHighlight);
 	};
 
 	const handleTableHighlighting = (tableData) => {
 		if (!tableData) return;
 
-		try {
 		const parentTag = tableData.parentNode;
 		console.log(parentTag);
 		if (
@@ -386,12 +308,6 @@ function DocxToTextConverter() {
 			highlightId,
 			tableData.outerHTML
 		);
-			
-			if (!section) {
-				console.error("Failed to create table highlight section");
-				return null;
-			}
-			
 		section.style.border = "1px solid blue";
 		section.style.boxSizing = "border-box";
 		section.style.display = "inline-block";
@@ -411,16 +327,9 @@ function DocxToTextConverter() {
 			parentElement.replaceChild(section, tableData);
 		}
 		return parentElement?.innerHTML;
-		} catch (error) {
-			console.error("Error in handleTableHighlighting:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to highlight table. Please try again.");
-			return null;
-		}
 	};
 
 	const addId = async (e) => {
-		try {
 		//console.log(e.target.tagName, "-------------" ,addImage,addTable );
 		if (e.target.tagName === "IMG" && addImage) {
 			if (isImageSelectedRef.current) {
@@ -469,18 +378,11 @@ function DocxToTextConverter() {
 						document.getElementById("neoDocView").innerHTML;
 				}
 			}
-			}
-		} catch (error) {
-			console.error("Error in addId:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to process selection. Please try again.");
 		}
 	};
 
 	useEffect(() => {
-		if (!contentRef.current) return;
-		
-		try {
+		if (contentRef.current) {
 			const contentDiv = contentRef.current;
 			const parser = new DOMParser();
 			const doc = parser.parseFromString(conversionStatus, "text/html");
@@ -519,9 +421,7 @@ function DocxToTextConverter() {
 					e.target.tagName === "SPAN"
 				) {
 					const table = findParentTable(e.target);
-					if (table) {
 					table.style.cursor = "cell";
-					}
 				}
 				if (e.target.tagName === "IMG") {
 					e.target.style.cursor = "cell";
@@ -530,9 +430,7 @@ function DocxToTextConverter() {
 			const removeHighlight = (e) => {
 				if (e.target.tagName === "TD") {
 					const table = findParentTable(e.target);
-					if (table) {
 					table.style.cursor = "";
-					}
 				}
 				if (e.target.tagName === "IMG") {
 					e.target.style.cursor = "";
@@ -590,10 +488,6 @@ function DocxToTextConverter() {
 					element.removeEventListener("click", addId);
 				});
 			};
-		} catch (error) {
-			console.error("Error in useEffect:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to initialize document. Please refresh the page.");
 		}
 	}, [conversionStatus, addImage, addTable, addLabel]);
 
@@ -1014,13 +908,6 @@ function DocxToTextConverter() {
 	const saveHighlights = async (updatedHighlights, content) => {
 		try {
 			setIsLoading(true);
-			
-			// Add timeout to prevent hanging requests
-			const timeoutPromise = new Promise((_, reject) => {
-				setTimeout(() => reject(new Error('Request timeout')), 30000); // 30 second timeout
-			});
-			
-			const savePromise = (async () => {
 			const updatedObj = {
 				highlights: updatedHighlights,
 				content,
@@ -1044,81 +931,25 @@ function DocxToTextConverter() {
 				});
 				setSearchText("");
 			}
-				return response;
-			})();
-			
-			// Race between timeout and save operation
-			const result = await Promise.race([savePromise, timeoutPromise]);
-			
-			if (result) {
 			fetchLabels(projectId);
-			}
 		} catch (error) {
 			console.error("Failed to save highlights", error);
-			setIsLoading(false);
-			setIsAlertOpen(true);
-			setAlertText("Failed to save highlights. Please try again.");
 		}
 	};
 
-	// Cleanup function to prevent memory leaks
-	const cleanup = useCallback(() => {
-		// Clear any pending timeouts
-		if (window.highlightTimeout) {
-			clearTimeout(window.highlightTimeout);
-		}
-		
-		// Remove event listeners
-		if (contentRef.current) {
-			const contentDiv = contentRef.current;
-			const tables = contentDiv.querySelectorAll("table");
-			const images = contentDiv.querySelectorAll("img");
-			
-			[...tables, ...images].forEach((element) => {
-				element.removeEventListener("mouseover", () => {});
-				element.removeEventListener("mouseout", () => {});
-				element.removeEventListener("click", () => {});
-			});
-		}
-	}, []);
-
-	// Cleanup on unmount
-	useEffect(() => {
-		return () => {
-			cleanup();
-		};
-	}, [cleanup]);
-
-	// Optimized reloadContent function
-	const reloadContent = useCallback(async () => {
-		try {
-			setIsLoading(true);
+	const reloadContent = async () => {
 		const response = await getTemplatesById(projectId, id);
-			if (contentRef.current) {
 		contentRef.current.innerHTML = response.content;
-			}
 		setIsContentTouched(false);
-		} catch (error) {
-			console.error("Failed to reload content:", error);
-			setIsAlertOpen(true);
-			setAlertText("Failed to reload content. Please refresh the page.");
-		} finally {
-			setIsLoading(false);
-		}
-	}, [projectId, id]);
+	};
 
-	// Optimized handleSaveTemplateContent function
-	const handleSaveTemplateContent = useCallback(async () => {
+	const handleSaveTemplateContent = async () => {
 		try {
-			const content = contentRef.current?.innerHTML;
-			if (!content) {
-				setIsAlertOpen(true);
-				setAlertText("No content to save.");
-				return;
-			}
-			
+			const content = contentRef.current.innerHTML;
 			setIsLoading(true);
-			const updatedObj = { content };
+			const updatedObj = {
+				content,
+			};
 			const response = await saveTemplateContent(templateId, updatedObj);
 
 			if (response) {
@@ -1136,12 +967,9 @@ function DocxToTextConverter() {
 			}
 			setIsContentTouched(false);
 		} catch (error) {
-			console.error("Failed to save template content", error);
-			setIsLoading(false);
-			setIsAlertOpen(true);
-			setAlertText("Failed to save template content. Please try again.");
+			console.error("Failed to save highlights", error);
 		}
-	}, [templateId]);
+	};
 
 	const handleInputChange = (e) => {
 		const { name, value } = e.target;
@@ -1152,61 +980,17 @@ function DocxToTextConverter() {
 		}));
 	};
 
-	// Optimized highlightText function with better performance
-	const highlightText = useCallback((text, query) => {
-		if (!text) return "";
-		
-		try {
-		let processedText = text;
-		
-			// Use a more efficient approach for highlighting patterns
-			const patterns = [
-				{ regex: /(_+)/g, class: "underscore-highlight" },
-				{ regex: /(-+)/g, class: "dash-highlight" },
-				{ regex: /(\.+)/g, class: "dot-highlight" },
-				{ regex: /(=+)/g, class: "equal-highlight" },
-				{ regex: /(\*+)/g, class: "asterisk-highlight" },
-				{ regex: /(#+)/g, class: "hash-highlight" },
-				{ regex: /(~+)/g, class: "tilde-highlight" },
-				{ regex: /( {3,})/g, class: "space-highlight" },
-				{ regex: /(\t+)/g, class: "tab-highlight" },
-				{ regex: /([_\-\*\.=#~]{3,})/g, class: "mixed-highlight" }
-			];
-			
-			// Process patterns in chunks to prevent blocking
-			const processPatternsInChunks = (text, patterns, chunkSize = 3) => {
-				let result = text;
-				for (let i = 0; i < patterns.length; i += chunkSize) {
-					const chunk = patterns.slice(i, i + chunkSize);
-					chunk.forEach(({ regex, class: className }) => {
-						result = result.replace(
-							regex,
-							`<span class="highlight ${className}">$1</span>`
-						);
-					});
-					// Allow other tasks to run
-					if (i + chunkSize < patterns.length) {
-						setTimeout(() => {}, 0);
-					}
-				}
-				return result;
-			};
-			
-			processedText = processPatternsInChunks(processedText, patterns);
-		
-		// Then apply search highlighting if query exists
-		if (!query) return processedText;
+	// Need to check if parent node has same data-hightlight-Id
+	const highlightText = (text, query) => {
+		//console.log(text,"-------------",query);
+		if (!query) return text;
 
 		const regex = new RegExp(`(${query})`, "g");
-		return processedText.replace(
+		return text.replace(
 			regex,
 			`<span class="highlight hightlightcolor" data-highlight-id="${highlightName}" >$1</span>`
 		);
-		} catch (error) {
-			console.error("Error in highlightText:", error);
-			return text; // Return original text if highlighting fails
-		}
-	}, [highlightName]);
+	};
 
 	const handleImageClick = () => {
 		setAddTable(false);
@@ -1257,7 +1041,7 @@ function DocxToTextConverter() {
 			<div className="flex justify-end mb-2">
 				<button
 					className="px-4 py-2 bg-green-500 text-white rounded"
-					onClick={() => navigate(`/htmlparser/${id}`)}
+					onClick={() => navigate(`/htmlparser/${id}?projectId=${projectId}`)}
 				>
 					Go to HTML Parser Tool
 				</button>
@@ -1877,5 +1661,3 @@ function DocxToTextConverter() {
 }
 
 export default DocxToTextConverter;
-
-

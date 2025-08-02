@@ -163,7 +163,7 @@ const NeoProTemplates = () => {
             <div className="flex flex-col space-y-6">
               <div className="flex justify-between items-center">
             <h2 className="text-3xl font-bold text-foreground ml-4">
-          {projectData && projectData.projectName ? projectData.projectName : 'Unnamed Project'}
+           Templates of {projectData && projectData.projectName ? projectData.projectName : 'Unnamed Project'}
             </h2>
               {/* Action Button - Aligned to left edge */}
             <button

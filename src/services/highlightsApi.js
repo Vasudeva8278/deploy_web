@@ -65,7 +65,8 @@ export const saveOrUpdateHighlights = async (templateId, updatedObj) => {
 export const saveTemplateContent = async (templateId, updatedObj) => {
   try {
     const response = await api.put(
-      `/projectDocs/update-content/${templateId}`,
+      `/templates/update-content/${templateId}`,
+
       updatedObj,
       {
         headers: {
@@ -84,7 +85,7 @@ export const saveTemplateContent = async (templateId, updatedObj) => {
 export const deleteHighlight = async (templateId, highlightId, content) => {
   try {
     const response = await api.delete(
-      `/projectDocs/delete-highlight/${templateId}`,
+      `/delete-highlight/${templateId}`,
       {
         headers: {
           "Content-Type": "application/json",
