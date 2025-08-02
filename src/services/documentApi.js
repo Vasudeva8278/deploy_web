@@ -69,7 +69,7 @@ export const deleteDocument = async (projectId, documentId) => {
 export const updateDocHighlightText = async (documentId, updatedDoc) => {
   try {
     const response = await api.put(
-      `/documents/updatedoc/${documentId}`,
+      `/projectDocs/updatedoc/${documentId}`,
       updatedDoc
     );
     return response.status === 200 ? response.data : null;
