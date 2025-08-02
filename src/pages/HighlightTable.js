@@ -65,6 +65,7 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState({});
+  const [clientSearchTerm, setClientSearchTerm] = useState({}); // NEW: search term for each dropdown
 
   const location = useLocation(); // Gives you access to the current URL including the query string
   const queryParams = new URLSearchParams(location.search);
@@ -90,6 +91,7 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
     // Replace the entire field content with just the client name
     handleInputChange(clientName, rowIndex, false);
     setShowClientDropdown(prev => ({ ...prev, [rowIndex]: false }));
+    setClientSearchTerm(prev => ({ ...prev, [rowIndex]: "" })); // Clear search term
     
     // Trigger blur event to save the changes
     setTimeout(() => {
@@ -103,6 +105,24 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   // Function to toggle client dropdown
   const toggleClientDropdown = (rowIndex) => {
     setShowClientDropdown(prev => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+    if (!showClientDropdown[rowIndex]) {
+      setClientSearchTerm(prev => ({ ...prev, [rowIndex]: "" })); // Clear search when opening
+    }
+  };
+
+  // Function to handle client search input
+  const handleClientSearch = (searchValue, rowIndex) => {
+    setClientSearchTerm(prev => ({ ...prev, [rowIndex]: searchValue }));
+  };
+
+  // Function to get filtered clients for a specific dropdown
+  const getFilteredClients = (rowIndex) => {
+    const searchTerm = clientSearchTerm[rowIndex] || "";
+    if (!searchTerm) return clients;
+    
+    return clients.filter(client => 
+      client.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
   // Function to handle client selection
@@ -171,6 +191,23 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
       
       // You can add additional logic here to populate other client-related fields
       // For example, you might want to update other form fields with client information
+    }
+  };
+
+  // Function to handle character click in client name input
+  const handleCharacterClick = (event, rowIndex) => {
+    const input = event.target;
+    const clickedPosition = input.selectionStart;
+    const value = input.value;
+    
+    if (clickedPosition >= 0 && clickedPosition < value.length) {
+      const clickedCharacter = value.charAt(clickedPosition);
+      console.log(`Clicked character: "${clickedCharacter}" at position: ${clickedPosition}`);
+      console.log(`Full input value: "${value}"`);
+      console.log(`Row index: ${rowIndex}`);
+      
+      // You can add additional logic here based on the clicked character
+      // For example, highlight the character, show a tooltip, etc.
     }
   };
 
@@ -595,6 +632,7 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
                                       setShowClientDropdown(prev => ({ ...prev, [rowIndex]: false }));
                                     }, 200);
                                   }}
+                                  onMouseUp={(e) => handleCharacterClick(e, rowIndex)}
                                   className='h-4 px-2 bg-transparent rounded focus:ring-2 focus:ring-blue-500 max-w-32 truncate'
                                   style={{
                                     textOverflow: 'ellipsis',
@@ -618,7 +656,17 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
                                   <div className='text-xs text-gray-500 px-2 py-1 border-b border-gray-200'>
                                     Select Client:
                                   </div>
-                                  {clients.map((client) => (
+                                  <div className='p-2 border-b border-gray-200'>
+                                    <input
+                                      type='text'
+                                      placeholder='Search clients...'
+                                      value={clientSearchTerm[rowIndex] || ""}
+                                      onChange={(e) => handleClientSearch(e.target.value, rowIndex)}
+                                      className='w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                                      autoFocus
+                                    />
+                                  </div>
+                                  {getFilteredClients(rowIndex).map((client) => (
                                     <button
                                       key={client._id}
                                       onClick={() => handleClientDropdownSelection(client.name, rowIndex)}
@@ -627,6 +675,11 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
                                       {client.name}
                                     </button>
                                   ))}
+                                  {getFilteredClients(rowIndex).length === 0 && (
+                                    <div className='px-2 py-1 text-xs text-gray-500'>
+                                      No clients found
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               
