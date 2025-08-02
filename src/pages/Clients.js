@@ -4,6 +4,8 @@ import { getAllClients, deleteClient } from "../services/clientsApi";
 // import folder from "../assets/folder.jpg";
 import { useNavigate } from "react-router-dom";
 import { FaUserPlus, FaFolder, FaEllipsisV, FaSearch, FaTrash } from "react-icons/fa";
+import { LuCreditCard } from "react-icons/lu";
+import { FaTable } from "react-icons/fa";
 import { ProjectContext } from "../context/ProjectContext";
 import NeoModal from "../components/NeoModal";
 import { motion } from "framer-motion";
@@ -17,6 +19,7 @@ const Clients = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingClientId, setDeletingClientId] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
+  const [viewMode, setViewMode] = useState('card'); // NEW: view mode state
   const navigate = useNavigate();
   const { projects } = useContext(ProjectContext);
 
@@ -107,6 +110,21 @@ const Clients = () => {
           <div className="w-full max-w-8xl w-full p-2 ">
           <div className="md:flex justify-between items-center" >
         <h2 className="text-xl font-bold md:mb-4 text-left md:ml-6">Clients</h2>
+        <div className="flex justify-between items-center gap-4">
+          <div>
+          <button
+            className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setViewMode('card')}
+          >
+            <LuCreditCard className="inline-block w-5 h-5" />
+          </button>
+          <button
+            className={`px-4 py-1 rounded font-semibold focus:outline-none transition-colors duration-200 ${viewMode === 'table' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setViewMode('table')}
+          >
+            <FaTable className="inline-block w-5 h-5" />
+          </button>
+          </div>
         <button
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md"
@@ -115,50 +133,134 @@ const Clients = () => {
                 Add Client
               </button>
         </div>
+        </div>
 
           
             <div className="w-full max-w-8xl mx-auto px-4 sm:px-6 lg:px-1 sm:mt-5 2xl:mr-20">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 sm:mt-0 ml-6">
-                {filteredClients.map(client => (
-                  <motion.div
-                    key={client._id}
-                    className="bg-white rounded-lg shadow p-4 sm:p-6 cursor-pointer transition-transform hover:scale-[1.02] hover:shadow-lg"
-                    onClick={() => handleClientClick(client)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <FaFolder className="h-6 w-6 text-blue-500" />
+              {viewMode === 'card' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 sm:mt-0 ml-6">
+                  {filteredClients.map(client => (
+                    <motion.div
+                      key={client._id}
+                      className="bg-white rounded-lg shadow p-4 sm:p-6 cursor-pointer transition-transform hover:scale-[1.02] hover:shadow-lg"
+                      onClick={() => handleClientClick(client)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="p-3 bg-blue-50 rounded-lg">
+                          <FaFolder className="h-6 w-6 text-blue-500" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
+                            onClick={(e) => handleDeleteClient(client._id, client.name, e)}
+                            disabled={deletingClientId === client._id}
+                            title="Delete client"
+                          >
+                            {deletingClientId === client._id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                            ) : (
+                              <FaTrash className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button className="text-gray-400 hover:text-gray-600">
+                            <FaEllipsisV />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button 
-                          className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
-                          onClick={(e) => handleDeleteClient(client._id, client.name, e)}
-                          disabled={deletingClientId === client._id}
-                          title="Delete client"
-                        >
-                          {deletingClientId === client._id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
-                          ) : (
-                            <FaTrash className="w-4 h-4" />
-                          )}
-                        </button>
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <FaEllipsisV />
-                        </button>
+                      <h3 className="mt-4 text-lg font-medium text-gray-900">{client.name}</h3>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                          {client.documents.length} Documents
+                        </span>
                       </div>
-                    </div>
-                    <h3 className="mt-4 text-lg font-medium text-gray-900">{client.name}</h3>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                        {client.documents.length} Documents
-                      </span>
-                    </div>
-                    <div className="mt-4 flex items-center text-sm text-gray-500">
-                      <span>Last updated: {new Date().toLocaleDateString()}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                      <div className="mt-4 flex items-center text-sm text-gray-500">
+                        <span>Last updated: {new Date().toLocaleDateString()}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 sm:mt-0 ml-6">
+                  <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Client Name
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Number of Docs
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Project Name
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Last Update Date
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredClients.map(client => (
+                          <tr 
+                            key={client._id} 
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => handleClientClick(client)}
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10">
+                                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <FaFolder className="h-5 w-5 text-blue-500" />
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{client.name}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                {client.documents.length} Documents
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {client.documents.length > 0 ? 
+                                client.documents[0]?.templateId?.projectId?.projectName || 'N/A' : 
+                                'No Project'
+                              }
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date().toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center space-x-2">
+                                <button 
+                                  className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50"
+                                  onClick={(e) => handleDeleteClient(client._id, client.name, e)}
+                                  disabled={deletingClientId === client._id}
+                                  title="Delete client"
+                                >
+                                  {deletingClientId === client._id ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                                  ) : (
+                                    <FaTrash className="w-4 h-4" />
+                                  )}
+                                </button>
+                                <button className="text-gray-400 hover:text-gray-600">
+                                  <FaEllipsisV />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
               {filteredClients.length === 0 && (
                 <div className="text-center py-12">
                   <div className="text-gray-400 text-6xl mb-4">📁</div>
