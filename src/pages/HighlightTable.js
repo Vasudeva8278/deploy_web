@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -18,6 +18,7 @@ import { ViewListIcon } from "@heroicons/react/solid";
 import Instructions from "../components/Instructions";
 import TableHeader from "../components/TableHeader";
 import { FaArrowRight } from "react-icons/fa";
+import NeoModal from "../components/NeoModal";
 
 import {
   addNewDocument,
@@ -31,6 +32,22 @@ import TooltipIcon from "../components/TooltipIcon";
 import FileCarousel from "../components/FileCarousel";
 import Carousel from "../components/FileCarousel";
 
+// Debounce function for API calls
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+
+
+ 
 const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   const navigate = useNavigate();
   const [tableData, setTableData] = useState([]);
@@ -44,13 +61,7 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   const contentRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);
-  const [labelPage, setLabelPage] = useState(0);
-  const labelsPerPage = 5; // Show 5 label fields at a time
-  const [docPage, setDocPage] = useState(0);
-  const docsPerPage = 2; // or 3
-  const maxDocPage = Math.max(0, tableData.length - docsPerPage);
-  const visibleDocs = tableData.slice(docPage, docPage + docsPerPage);
-  const [blurPage, setBlurPage] = useState(false);
+  const [error, setError] = useState(null);
 
   const location = useLocation(); // Gives you access to the current URL including the query string
   const queryParams = new URLSearchParams(location.search);
@@ -59,36 +70,58 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
 
   console.log(templateId, filename);
   const fetchData = async () => {
-    const response = await getDocumentsListByTemplateId(projectId, templateId);
-    const templateName = response?.templateName;
-    setTemplateName(templateName);
-    const data = response?.documents;
-    setMsDocument(data);
-    console.log(data);
+    try {
+      const response = await getDocumentsListByTemplateId(projectId, templateId);
+      const templateName = response?.templateName;
+      setTemplateName(templateName);
+      const data = response?.documents;
+      setMsDocument(data);
+      console.log(data);
 
-    const items =
-      data.length > 0
-        ? data.map((item) => ({
-            id: item._id,
-            image: item?.thumbnail, // Assuming `thumbnail` exists in each item
-            title: item.fileName,
-            description: item.highlights
-              .filter((highlight) => highlight.type === "text")
-              .map((highlight) => highlight.text)
-              .join(" "),
-          }))
-        : [];
+      const items =
+        data.length > 0
+          ? data.map((item) => ({
+              id: item._id,
+              image: item?.thumbnail, // Assuming `thumbnail` exists in each item
+              title: item.fileName,
+              description: item.highlights
+                .filter((highlight) => highlight.type === "text")
+                .map((highlight) => highlight.text)
+                .join(" "),
+            }))
+          : [];
 
-    setItems(items);
-    setTableData(
-      data.length > 0
-        ? data
-        : highlightsArray.map((highlight) => ({
+      setItems(items);
+      setTableData(
+        data.length > 0
+          ? data
+          : highlightsArray.map((highlight) => ({
+              ...highlight,
+          id: uuidv4(),
+          templateId,
+            }))
+      );
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      
+      // Handle 404 error gracefully
+      if (error.response?.status === 404) {
+        console.log("Template not found, using highlights array as fallback");
+        // Use highlightsArray as fallback when template is not found
+        setTableData(
+          highlightsArray.map((highlight) => ({
             ...highlight,
-            id: uuidv4(),
-            templateId,
+        id: uuidv4(),
+        templateId,
           }))
-    );
+        );
+        setTemplateName("Template (Not Found)");
+        setItems([]);
+      } else {
+        // For other errors, show error message
+        setError("Failed to load documents. Please try again.");
+      }
+    }
   };
 
   useEffect(() => {
@@ -110,21 +143,31 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   };
 
   const handleDeleteDocument = async (doc) => {
-    setBlurPage(true);
     const doc_id = doc.id ? doc.id : doc._id;
+    console.log("Deleting document:", doc_id, "Project ID:", projectId);
+    
     try {
       const response = await deleteDocument(projectId, doc_id);
       if (response) {
-        // Remove the deleted row from tableData
-        setTableData(prev =>
-          prev.filter(row => (row.id || row._id) !== doc_id)
-        );
+        console.log("Document deleted successfully");
+        fetchData(); // Refresh the data after successful deletion
       }
     } catch (error) {
-      console.error("Delete failed", error);
-      // Optionally show an error message
+      console.error("Delete failed:", error);
+      
+      // Handle specific error types
+      if (error.response?.status === 404) {
+        setError("Document not found. It may have already been deleted.");
+      } else if (error.response?.status === 403) {
+        setError("You don't have permission to delete this document.");
+      } else if (error.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else if (error.code === 'ERR_NETWORK') {
+        setError("Network error. Please check your connection.");
+      } else {
+        setError("Failed to delete document. Please try again.");
+      }
     }
-    setBlurPage(false);
   };
   const handleViewDocument = async (doc) => {
     const doc_id = doc.id ? doc.id : doc._id;
@@ -204,7 +247,13 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   };
 
   const handleAddRow = async () => {
-    if (tableData[0].highlights) {
+    if (!tableData[0] || !tableData[0].highlights) {
+      console.error("No table data or highlights available");
+      setError("No template data available to create new document");
+      return;
+    }
+    
+    try {
       const newCells = {
         id: uuidv4(),
         templateId,
@@ -221,17 +270,31 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
       const { id } = response;
       newCells.id = id;
       setTableData([...tableData, newCells]);
+      setError(null); // Clear any previous errors
+    } catch (error) {
+      console.error("Error adding new row:", error);
+      
+      // Handle specific error types
+      if (error.response?.status === 404) {
+        setError("Template not found. Please check if the template exists.");
+      } else if (error.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else if (error.code === 'ERR_NETWORK') {
+        setError("Network error. Please check your connection.");
+      } else {
+      setError("Failed to add new document. Please try again.");
+    }
     }
   };
   const handleExportAll = async (event) => {
     event.preventDefault();
-    const documentIds = msDocument.map((doc) => doc._id);
-    const document = {
-      documentIds,
-      folderName: filename,
-      templateId: templateId,
-      projectId: projectId,
-    };
+      const documentIds = msDocument.map((doc) => doc._id);
+      const document = {
+        documentIds,
+        folderName: filename,
+        templateId: templateId,
+        projectId: projectId,
+      };
     try {
       setIsLoading(true);
       const response = await generateZipFile(document, filename);
@@ -242,15 +305,34 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
     }
   };
 
-  const totalLabels = tableData[0]?.highlights.length || 0;
-  const maxLabelPage = Math.max(0, totalLabels - labelsPerPage);
-  const visibleLabelIndexes = Array.from(
-    { length: Math.min(labelsPerPage, totalLabels) },
-    (_, i) => i + labelPage
-  );
-
   return (
-    <div className={`w-full${blurPage ? ' blur-sm pointer-events-none' : ''}`}>
+    <div className='w-full'>
+      {/* Error Display */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                onClick={() => setError(null)}
+                className="text-red-400 hover:text-red-600"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className='w-full rounded-lg'>
         <div className='flex pb-2'>
           <div className='w-96 flex-1 rounded-lg mr-4 text-gray-400 pt-2 text-sm'>
@@ -312,161 +394,184 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
         </div>
       </div>
       <div className='flex w-full'>
-        <div className='flex w-full overflow-x-auto  bg-white  rounded-lg'>
+        <div className='w-full bg-white rounded-lg' style={{ height: '500px' }}>
           {tableData.length > 0 && (
-            <table
-              id='doc-table'
-              className='bg-white shadow-md rounded-lg border-collapse w-full'
-            >
-              <thead>
-                <tr className='bg-gray-300 text-gray-700 text-sm font-normal'>
-                  <TableHeader
-                    tableData={tableData}
-                    handleAddRow={handleAddRow}
-                    name='Variable Name'
-                    firstColumn={true}
-                  />
-                  {tableData.map((row, rowIndex) => (
-                    <th key={rowIndex} className='px-2 text-left'>
-                      <div className='flex items-center justify-between text-sm'>
-                        <input
-                          type='text'
-                          value={row.fileName}
-                          onChange={(e) =>
-                            handleInputChange(e.target.value, rowIndex, false)
-                          }
-                          onBlur={() => handleBlur(rowIndex, false)}
-                          className='h-8 px-2 bg-transparent rounded focus:ring-2 focus:ring-blue-500'
-                        />
-                        <div className='flex items-center'>
-                          {tableData.length > 1 && (
-                            <button
-                              type="button"
-                              className='bg-transparent text-red-400 rounded hover:bg-white transition-colors m-2 flex items-center'
-                              onClick={() => handleDeleteDocument(row)}
-                            >
-                              <MinusIcon className='w-5 h-5 inline-block m-1' />
-                              <span className='m-1'>Remove</span>
-                            </button>
-                          )}
-                          <button
-                            className='hidden bg-green-500 text-white rounded hover:bg-blue-600 transition-colors m-2'
-                            onClick={() => handleViewDocument(row)}
-                          >
-                            <EyeIcon className='w-5 h-5 inline-block m-1' />
-                          </button>
-                          <button
-                            className='hidden bg-green-500 text-white rounded hover:bg-blue-600 transition-colors m-2'
-                            onClick={() => handleExport(row)}
-                          >
-                            <DownloadIcon className='w-5 h-5 inline-block m-1' />
-                          </button>
-                        </div>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <div className="flex items-center mb-2">
-                  
-                </div>
-                {visibleLabelIndexes.map((cellIndex) => (
-                  <tr key={cellIndex} className='p-1 m-1'>
-                    <td className='p-1 m-1 border-r border-gray-300'>
-                      <div className='border border-gray-300 rounded p-1 pl-4 m-1 text-sm'>
-                        {tableData[0].highlights[cellIndex].label}
-                      </div>
-                    </td>
+            <div className="w-full h-full overflow-y-auto">
+              <table
+                id='doc-table'
+                className='bg-white shadow-md rounded-lg border-collapse w-full'
+              >
+                <thead className="sticky top-0 bg-gray-300 z-10">
+                  <tr className='bg-gray-300 text-gray-700 text-sm font-normal'>
+                    <TableHeader
+                      tableData={tableData}
+                      handleAddRow={handleAddRow}
+                      name='Variable Name'
+                      firstColumn={true}
+                    />
                     {tableData.map((row, rowIndex) => (
-                      <td
-                        key={rowIndex}
-                        className='p-1 m-1 border-r border-gray-300 text-sm'
-                      >
-                        <div className='border border-gray-300 rounded'>
-                          {row.highlights[cellIndex].type === 'text' ? (
-                            <input
-                              type='text'
-                              value={row.highlights[cellIndex].text}
-                              onChange={(e) =>
-                                handleInputChange(e.target.value, rowIndex, cellIndex)
-                              }
-                              onBlur={() => handleBlur(rowIndex, cellIndex)}
-                              onFocus={() => handleDocument(rowIndex, cellIndex)}
-                              className='rounded focus:ring-2 focus:ring-blue-500 w-full m-0 p-1 pl-4'
-                            />
-                          ) : row.highlights[cellIndex].type === 'image' ? (
-                            <>
-                              {" "}
-                              {row.highlights[cellIndex].text !== "" ? (
-                                <>
-                                  <span
-                                    className='font-semibold hidden'
-                                    dangerouslySetInnerHTML={{
-                                      __html: row.highlights[cellIndex].text,
-                                    }}
-                                  ></span>{" "}
-                                  <button
-                                    onClick={(e) =>
-                                      changeImage(e, rowIndex, cellIndex)
-                                    }
-                                    className='mt-2'
-                                  >
-                                    <img src={imageIcon} />
-                                  </button>
-                                </>
-                              ) : (
-                                <button>
-                                  <input
-                                    type='file'
-                                    name='selectedImage'
-                                    onChange={(e) =>
-                                      changeImage(
-                                        e.target.value,
-                                        rowIndex,
-                                        cellIndex
-                                      )
-                                    }
-                                    accept='image/*'
-                                    className='mt-2'
-                                  />
-                                </button>
-                              )}{" "}
-                            </>
-                          ) : row.highlights[cellIndex].type === 'table' ? (
-                            <>
-                              {" "}
-                              {row.highlights[cellIndex].text !== "" ? (
-                                <>
-                                  <span
-                                    className='font-normal hidden'
-                                    dangerouslySetInnerHTML={{
-                                      __html: row.highlights[cellIndex].text,
-                                    }}
-                                  ></span>
-                                  <button
-                                    onClick={(e) =>
-                                      changeImage(e, rowIndex, cellIndex)
-                                    }
-                                    className='mt-2'
-                                  >
-                                    <img src={tableIcon} />
-                                  </button>
-                                </>
-                              ) : (
-                                <button>+add</button>
-                              )}{" "}
-                            </>
-                          ) : (
-                            " "
-                          )}
+                      <th key={rowIndex} className='px-2 text-left'>
+                        <div className='flex items-center justify-between text-sm'>
+                          <input
+                            type='text'
+                            value={row.fileName}
+                            onChange={(e) =>
+                              handleInputChange(e.target.value, rowIndex, false)
+                            }
+                            onBlur={() => handleBlur(rowIndex, false)}
+                            className='h-4 px-2 bg-transparent rounded focus:ring-2 focus:ring-blue-500 max-w-32 truncate'
+                            style={{
+                              textOverflow: 'ellipsis',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={row.fileName} // Show full name on hover
+                          />
+                          <div className='flex items-center'>
+                            {tableData.length > 1 && (
+                              <button
+                                className='bg-transparent text-red-400 rounded hover:bg-white transition-colors m-2 flex items-center'
+                                onClick={() => handleDeleteDocument(row)}
+                              >
+                                <MinusIcon className='w-5 h-5 inline-block m-1' />
+                                <span className='m-1'>Remove</span>
+                              </button>
+                            )}
+                            <button
+                              className='hidden bg-green-500 text-white rounded hover:bg-blue-600 transition-colors m-2'
+                              onClick={() => handleViewDocument(row)}
+                            >
+                              <EyeIcon className='w-5 h-5 inline-block m-1' />
+                            </button>
+                            <button
+                              className='hidden bg-green-500 text-white rounded hover:bg-blue-600 transition-colors m-2'
+                              onClick={() => handleExport(row)}
+                            >
+                              <DownloadIcon className='w-5 h-5 inline-block m-1' />
+                            </button>
+                          </div>
                         </div>
-                      </td>
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {tableData[0].highlights.map((cell, cellIndex) => (
+                    <tr key={cellIndex} className=' p-1 m-1'>
+                      <td className='p-1 m-1 border-r border-gray-300'>
+                        <div className='border border-gray-300 rounded p-1 pl-4 m-1 text-sm'>
+                          {cell.label}
+                        </div>
+                      </td>
+                      {tableData.map((row, rowIndex) => (
+                        <td
+                          key={rowIndex}
+                          className='  p-1 m-1 border-r border-gray-300 text-sm'
+                        >
+                          <div className='border border-gray-300 rounded   '>
+                            {tableData[rowIndex].highlights[cellIndex].type ===
+                            "text" ? (
+                              <input
+                                type='text'
+                                value={
+                                  tableData[rowIndex].highlights[cellIndex].text
+                                }
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    e.target.value,
+                                    rowIndex,
+                                    cellIndex
+                                  )
+                                }
+                                onBlur={() => handleBlur(rowIndex, cellIndex)}
+                                onFocus={() =>
+                                  handleDocument(rowIndex, cellIndex)
+                                }
+                                className=' rounded focus:ring-2 focus:ring-blue-500 w-full m-0 p-1 pl-4'
+                              />
+                            ) : tableData[rowIndex].highlights[cellIndex].type ===
+                              "image" ? (
+                              <>
+                                {" "}
+                                {tableData[rowIndex].highlights[cellIndex]
+                                  .text !== "" ? (
+                                  <>
+                                    <span
+                                      className='font-semibold hidden'
+                                      dangerouslySetInnerHTML={{
+                                        __html:
+                                          tableData[rowIndex].highlights[
+                                            cellIndex
+                                          ].text,
+                                      }}
+                                    ></span>{" "}
+                                    <button
+                                      onClick={(e) =>
+                                        changeImage(e, rowIndex, cellIndex)
+                                      }
+                                      className='mt-2'
+                                    >
+                                      <img src={imageIcon} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button>
+                                    <input
+                                      type='file'
+                                      name='selectedImage'
+                                      onChange={(e) =>
+                                        changeImage(
+                                          e.target.value,
+                                          rowIndex,
+                                          cellIndex
+                                        )
+                                      }
+                                      accept='image/*'
+                                      className='mt-2'
+                                    />
+                                  </button>
+                                )}{" "}
+                              </>
+                            ) : tableData[rowIndex].highlights[cellIndex].type ===
+                              "table" ? (
+                              <>
+                                {" "}
+                                {tableData[rowIndex].highlights[cellIndex]
+                                  .text !== "" ? (
+                                  <>
+                                    <span
+                                      className='font-normal hidden'
+                                      dangerouslySetInnerHTML={{
+                                        __html:
+                                          tableData[rowIndex].highlights[
+                                            cellIndex
+                                          ].text,
+                                      }}
+                                    ></span>
+                                    <button
+                                      onClick={(e) =>
+                                        changeImage(e, rowIndex, cellIndex)
+                                      }
+                                      className='mt-2'
+                                    >
+                                      <img src={tableIcon} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button>+add</button>
+                                )}{" "}
+                              </>
+                            ) : (
+                              " "
+                            )}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           <div
             ref={contentRef}
@@ -514,28 +619,14 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
       </div>
       <div className='flex ml-12'>
         <div className='mt-4'>
-          <div className="flex items-center gap-x-4 overflow-x-auto py-4">
-            {tableData.map((doc) => (
-              <div
-                key={doc.id}
-                className="relative w-24 h-28 min-w-[6rem] bg-white border-2 border-blue-400 rounded-xl flex items-center justify-center mx-2"
-              >
-                {/* Eye icon in top-right */}
-                <button
-                  className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
-                  onClick={() => handleViewDocument(doc)}
-                  title="Preview"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-                {/* Document Name */}
-                <span className="text-blue-600 font-semibold text-center text-sm">Doc Name</span>
-              </div>
-            ))}
-          </div>
+          <Carousel
+            items={items}
+            slidesToShow={6}
+            itemWidth={150}
+            carouselWidth={800}
+            projectId={projectId}
+            templateId={templateId}
+          />
         </div>
       </div>
       {/*  <div className="col-span-1 bg-white rounded-lg shadow-md  ">
@@ -544,9 +635,7 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
         <Instructions handleExportAll={handleExportAll} viewAllDocument={viewAllDocument} displayListofDocuments={displayListofDocuments} />
       </div>*/}
     </div>
-  
   );
 };
 
 export default HighlightTable;
-  

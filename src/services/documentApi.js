@@ -45,13 +45,22 @@ export const updateDocument = async (projectId, formData) => {
 // Delete Document
 export const deleteDocument = async (projectId, documentId) => {
   try {
+    console.log(`Attempting to delete document: ${documentId} from project: ${projectId}`);
+    console.log(`API endpoint: /projectDocs/${projectId}/documents/delete-doc/${documentId}`);
+    
     const response = await api.delete(
       `/projectDocs/${projectId}/documents/delete-doc/${documentId}`
     );
-    console.log(response);
+    console.log("Delete response:", response);
     return response;
   } catch (error) {
     console.error("Failed to delete document", error);
+    console.error("Error details:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url
+    });
     throw error;
   }
 };

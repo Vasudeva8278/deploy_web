@@ -26,6 +26,10 @@ const Carousel = ({ items, slidesToShow = 4, itemWidth = 200, carouselWidth = 90
     return () => clearInterval(interval);
   }, []);
 
+  // Add ellipsis card if there are more items than can be shown
+  const shouldShowEllipsis = items.length > slidesToShow;
+  const displayItems = shouldShowEllipsis ? items.slice(0, slidesToShow) : items;
+
   return (
     <div className="relative" style={{ width: `${carouselWidth + 20}px` }}>
       <div className="overflow-hidden" style={{ width: `${carouselWidth}px` }}>
@@ -33,24 +37,59 @@ const Carousel = ({ items, slidesToShow = 4, itemWidth = 200, carouselWidth = 90
           className="flex transition-transform duration-500 ease-in-out"
           style={{ 
             transform: `translateX(-${currentIndex * itemWidth}px)`,
-            width: `${items.length * itemWidth}px`
+            width: `${displayItems.length * itemWidth}px`
           }}
         >
-          {items.map((item, index) => (
+          {displayItems.map((item, index) => (
             <div 
               key={index} 
               className="flex-shrink-0"
-              style={{ width: `${itemWidth}px` }}
+              style={{ width: `${itemWidth}px`, height: '120px' }}
             >
-              <div className="m-2 border rounded-lg overflow-hidden shadow-md bg-white">
-              <button className=' bg-green-500 text-white rounded hover:bg-blue-600 transition-colors m-2' onClick={()=>handlePreviewDocument(item.id)}>   <EyeIcon className='w-5 h-5 inline-block m-1' /> </button>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold truncate">{item.title}</h3>
-                  <p className="mt-2 text-sm text-gray-600 line-clamp-2">{item.description}</p>
+              <div className="m-2 border rounded-lg overflow-hidden shadow-md bg-white" style={{ height: '100px' }}>
+                <button 
+                  className='bg-green-500 text-white rounded hover:bg-blue-600 transition-colors m-2' 
+                  onClick={()=>handlePreviewDocument(item.id)}
+                  style={{ height: '24px', width: '24px' }}
+                >   
+                  <EyeIcon className='w-4 h-4 inline-block' /> 
+                </button>
+                <div className="p-2" style={{ height: '60px', overflow: 'hidden' }}>
+                  <h3 className="text-sm font-semibold truncate" style={{ 
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    maxHeight: '20px'
+                  }}>
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-600" style={{
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    maxHeight: '16px'
+                  }}>
+                    {item.description}
+                  </p>
                 </div>
               </div>
             </div>
           ))}
+          
+          {/* Ellipsis card to indicate more items */}
+          {shouldShowEllipsis && (
+            <div 
+              className="flex-shrink-0"
+              style={{ width: `${itemWidth}px`, height: '120px' }}
+            >
+              <div className="m-2 border rounded-lg overflow-hidden shadow-md bg-gray-100 flex items-center justify-center" style={{ height: '100px' }}>
+                <div className="text-center">
+                  <div className="text-2xl text-gray-400 mb-1">...</div>
+                  <div className="text-xs text-gray-500">More files</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <button

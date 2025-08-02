@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { FileText, Trash2, Plus, Folder, FolderOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getAllProjects } from '../services/projectApi';
 import { AuthContext } from '../context/AuthContext';
 import { useLocation, useParams } from 'react-router-dom';
-import { getAllTemplates } from "../services/templateApi";
 
 interface TemplatesSidebarProps {
   // Remove isVisible prop since it's now permanent
@@ -41,9 +40,6 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
   const location = useLocation();
   const { id: activeProjectId } = useParams();
 
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(true);
-  const [templateError, setTemplateError] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState("all");
 
   // Function to check if a project is active based on current route
@@ -77,10 +73,16 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
+        setLoading(true);
         const data = await getAllProjects();
-        setProjects(data);
+        console.log('Fetched projects:', data);
+        setProjects(data || []);
       } catch (err) {
+        console.error('Error fetching projects:', err);
         setProjects([]);
+        setError('Failed to load projects');
+      } finally {
+        setLoading(false);
       }
     };
     fetchProjects();
@@ -123,6 +125,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
             };
           } catch (err) {
             console.error(`Error fetching documents for project ${project.projectName}:`, err);
+            // Return project even if documents fetch fails
             return {
               projectId: project._id,
               projectName: project.projectName,
@@ -134,18 +137,22 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
 
         const results = await Promise.all(projectDocsPromises);
         
-        // Store all projects (including those without documents)
+        // Show ALL projects, including those without documents
+        console.log('All projects with documents:', results);
         setProjectDocuments(results);
-        
-        // Store projects with documents for the document count display
-        const projectsWithDocs = results.filter(project => project.documents.length > 0);
-        setProjectDocuments(projectsWithDocs);
         
         setError(null);
       } catch (err) {
         console.error('Error fetching project documents:', err);
         setError('Failed to load documents');
-        setProjectDocuments([]);
+        // Even if there's an error, show projects without documents
+        const projectsWithoutDocs = projects.map((project: any) => ({
+          projectId: project._id,
+          projectName: project.projectName,
+          documents: [],
+          expanded: false
+        }));
+        setProjectDocuments(projectsWithoutDocs);
       } finally {
         setLoading(false);
       }
@@ -156,21 +163,6 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
       fetchAllProjectDocuments();
     }
   }, [projects, isRestrictedUser]);
-
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const res = await getAllTemplates();
-        setTemplates(res);
-      } catch (err) {
-        setTemplateError('Failed to fetch templates');
-        setTemplates([]);
-      } finally {
-        setLoadingTemplates(false);
-      }
-    };
-    fetchTemplates();
-  }, []);
 
   const toggleProject = (projectId: string, event: React.MouseEvent) => {
     // Stop propagation to prevent project navigation when clicking the expand arrow
@@ -200,8 +192,6 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
     // Navigate to document view page
     navigate(`/NeoTemplates/${documentId}`);
   };
-
- 
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
@@ -261,7 +251,69 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
 
   // Original logic for non-restricted users
   let filteredProjects = projectDocuments;
-  if (filteredProjects.length === 0) return null;
+  
+  // Show loading state if still loading
+  if (loading) {
+    return (
+      <div className={`flex-1 p-2 overflow-auto bg-gray-50 mt-16 border-2 border-gray-200 mr-2 ml-2 fixed top-0 left-20 z-20 h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden rounded-3xl transition-all duration-300 ${
+        isCollapsed ? 'w-12' : 'w-40'
+      }`}>
+        <div className="flex-1 overflow-y-auto p-2 flex flex-col">
+          {!isCollapsed && (
+            <h3 className="text-xs font-semibold text-gray-800 mb-2 flex-shrink-0">
+              Projects 
+            </h3>
+          )}
+          <hr />
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className={`flex-1 p-2 overflow-auto bg-gray-50 mt-16 border-2 border-gray-200 mr-2 ml-2 fixed top-0 left-20 z-20 h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden rounded-3xl transition-all duration-300 ${
+        isCollapsed ? 'w-12' : 'w-40'
+      }`}>
+        <div className="flex-1 overflow-y-auto p-2 flex flex-col">
+          {!isCollapsed && (
+            <h3 className="text-xs font-semibold text-gray-800 mb-2 flex-shrink-0">
+              Projects 
+            </h3>
+          )}
+          <hr />
+          <div className="text-xs text-red-500 text-center py-2">
+            {isCollapsed ? '!' : error}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no projects
+  if (filteredProjects.length === 0) {
+    return (
+      <div className={`flex-1 p-2 overflow-auto bg-gray-50 mt-16 border-2 border-gray-200 mr-2 ml-2 fixed top-0 left-20 z-20 h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden rounded-3xl transition-all duration-300 ${
+        isCollapsed ? 'w-12' : 'w-40'
+      }`}>
+        <div className="flex-1 overflow-y-auto p-2 flex flex-col">
+          {!isCollapsed && (
+            <h3 className="text-xs font-semibold text-gray-800 mb-2 flex-shrink-0">
+              Projects 
+            </h3>
+          )}
+          <hr />
+          <div className="text-xs text-gray-500 text-center py-2">
+            {isCollapsed ? '?' : 'No projects found'}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={` flex-1 p-2 overflow-auto bg-gray-50 mt-16 border-2 border-gray-200 mr-2 ml-2 fixed top-0 left-20 z-20 h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden rounded-3xl transition-all duration-300 ${
@@ -322,9 +374,6 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = () => {
                       <span className="text-xs font-medium flex-1 truncate">
                         {project.projectName}
                       </span>
-                      {project.documents.length > 0 && (
-                        <span className="text-xs text-gray-500 ml-1">({project.documents.length})</span>
-                      )}
                     </>
                   )}
                 </div>

@@ -44,14 +44,26 @@ export const deleteProject = async (projectId) => {
 };
 
 // Get all projects
-export const getAllProjects = async () => {
+export const getAllProjects = async (signal) => {
   try {
-    const response = await api.get("/projects");
+    const response = await api.get("/projects", { signal });
     if (response.status !== 200) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     return response.data;
   } catch (error) {
+    // Check if it's an abort error
+    if (error.name === 'AbortError') {
+      console.log('Projects request was aborted');
+      throw error;
+    }
+    
+    // Check if it's a network error
+    if (error.code === 'ERR_NETWORK' || error.message.includes('Client has been destroyed')) {
+      console.log('Network error or client destroyed:', error.message);
+      throw new Error('Network error. Please check your connection.');
+    }
+    
     console.error("Error while fetching projects", error);
     throw error;
   }

@@ -26,6 +26,15 @@ code {
   border: 0px solid blue !important;
   background-color: yellow;
 }
+
+.underscore-highlight {
+  background-color: #ffff00 !important; /* Bright yellow */
+  border: 0px solid blue !important;
+  padding: 1px 2px !important;
+  border-radius: 2px !important;
+  font-weight: bold !important;
+  display: inline-block !important;
+}
 #originalText img{
  width: 200px !important;
  height: 200px !important;
