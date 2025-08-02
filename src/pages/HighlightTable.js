@@ -62,11 +62,117 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState("");
+  const [showClientDropdown, setShowClientDropdown] = useState({});
 
   const location = useLocation(); // Gives you access to the current URL including the query string
   const queryParams = new URLSearchParams(location.search);
   const projectId = queryParams.get("projectId");
   const [templateName, setTemplateName] = useState("");
+
+  // Function to fetch clients
+  const fetchClients = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BASE_URL || 'http://13.200.200.137:7000'}/api/clients`);
+      if (response.data.success) {
+        setClients(response.data.data);
+        console.log("Clients fetched:", response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      setError("Failed to load clients. Please try again.");
+    }
+  };
+
+  // Function to handle client selection from dropdown
+  const handleClientDropdownSelection = (clientName, rowIndex) => {
+    // Replace the entire field content with just the client name
+    handleInputChange(clientName, rowIndex, false);
+    setShowClientDropdown(prev => ({ ...prev, [rowIndex]: false }));
+    
+    // Trigger blur event to save the changes
+    setTimeout(() => {
+      handleBlur(rowIndex, false);
+    }, 100);
+    
+    // Don't update the main selectedClient - just use the name in the field
+    console.log(`Using client name: ${clientName} in document field`);
+  };
+
+  // Function to toggle client dropdown
+  const toggleClientDropdown = (rowIndex) => {
+    setShowClientDropdown(prev => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+  };
+
+  // Function to handle client selection
+  const handleClientSelection = (clientId) => {
+    setSelectedClient(clientId);
+    const selectedClientData = clients.find(client => client._id === clientId);
+    if (selectedClientData) {
+      console.log("Selected client:", selectedClientData);
+      // You can add additional logic here to filter documents based on client
+    }
+  };
+
+  // Function to get selected client data
+  const getSelectedClientData = () => {
+    return clients.find(client => client._id === selectedClient);
+  };
+
+  // Function to extract client name from document name
+  const getClientFromDocumentName = (fileName) => {
+    const match = fileName.match(/^([^_]+)_(.+)$/);
+    if (match) {
+      const clientName = match[1];
+      const documentName = match[2];
+      return { clientName, documentName };
+    }
+    return { clientName: null, documentName: fileName };
+  };
+
+  // Function to extract client name from any input field
+  const extractClientFromInput = (inputValue) => {
+    // Check if the input contains a client name
+    const clientMatch = clients.find(client => 
+      inputValue.toLowerCase().includes(client.name.toLowerCase())
+    );
+    
+    if (clientMatch) {
+      return clientMatch;
+    }
+    
+    // If no exact match, try to extract from the beginning of the input
+    const words = inputValue.split(/[\s_-]/);
+    if (words.length > 0) {
+      const potentialClientName = words[0];
+      const clientMatch = clients.find(client => 
+        client.name.toLowerCase().includes(potentialClientName.toLowerCase()) ||
+        potentialClientName.toLowerCase().includes(client.name.toLowerCase())
+      );
+      return clientMatch || null;
+    }
+    
+    return null;
+  };
+
+  // Function to handle document name input with client detection
+  const handleDocumentNameInput = (value, rowIndex) => {
+    // First update the input value
+    handleInputChange(value, rowIndex, false);
+    
+    // Then try to extract client information
+    const detectedClient = extractClientFromInput(value);
+    if (detectedClient) {
+      console.log(`Detected client: ${detectedClient.name} from input: ${value}`);
+      
+      // Don't update the main selectedClient - just detect and log
+      // setSelectedClient(detectedClient._id); // Removed this line
+      
+      // You can add additional logic here to populate other client-related fields
+      // For example, you might want to update other form fields with client information
+    }
+  };
 
   console.log(templateId, filename);
   const fetchData = async () => {
@@ -127,7 +233,22 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   useEffect(() => {
     console.log(templateId);
     fetchData();
+    fetchClients(); // Fetch clients when component mounts
   }, [highlightsArray, templateId]);
+
+  // Handle clicking outside dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.client-dropdown-container')) {
+        setShowClientDropdown({});
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const viewAllDocument = (docId) => {
     navigate(`/docviewall/${templateId}?projectId=${projectId}`);
@@ -191,28 +312,58 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
   };
 
   const saveTableOrImage = async (value) => {
-    const updatedTableData = [...tableData];
-    updatedTableData[rowNo].highlights[cellNo].text = value;
-    const updatedRow = updatedTableData[rowNo];
-    const updatedHighlight = updatedTableData[rowNo].highlights[cellNo];
-    //  updatedRow.content = await editDocumentContent(conversionStatus,updatedHighlight)
-    console.log(updatedRow);
-    const doc_id = updatedRow.id ? updatedRow.id : updatedRow._id;
-    const response = await updateDocHighlightText(doc_id, updatedRow);
-    if (response) fetchData();
+    try {
+      const updatedTableData = [...tableData];
+      updatedTableData[rowNo].highlights[cellNo].text = value;
+      const updatedRow = updatedTableData[rowNo];
+      const updatedHighlight = updatedTableData[rowNo].highlights[cellNo];
+      //  updatedRow.content = await editDocumentContent(conversionStatus,updatedHighlight)
+      console.log(updatedRow);
+      const doc_id = updatedRow.id ? updatedRow.id : updatedRow._id;
+      const response = await updateDocHighlightText(doc_id, updatedRow);
+      if (response) fetchData();
+    } catch (error) {
+      console.error("Failed to save table or image:", error);
+      
+      // Handle specific error types
+      if (error.code === 'ERR_NETWORK') {
+        setError("Network error. Please check your connection and try again.");
+      } else if (error.response?.status === 404) {
+        setError("Document not found. It may have been deleted.");
+      } else if (error.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else {
+        setError("Failed to save changes. Please try again.");
+      }
+    }
   };
 
   const handleBlur = async (rowIndex, cellIndex) => {
-    const updatedRow = tableData[rowIndex];
-    const updatedHighlight = updatedRow.highlights[cellIndex];
-    // updatedRow.content = await editDocumentContent(conversionStatus,updatedHighlight)
-    console.log(updatedRow);
-    const doc_id = updatedRow.id ? updatedRow.id : updatedRow._id;
-    const response = await updateDocHighlightText(doc_id, updatedRow);
-    console.log(response);
-    //setTableData([...tableData]);
-    fetchData();
-    // }
+    try {
+      const updatedRow = tableData[rowIndex];
+      const updatedHighlight = updatedRow.highlights[cellIndex];
+      // updatedRow.content = await editDocumentContent(conversionStatus,updatedHighlight)
+      console.log("Saving document with updated row:", updatedRow);
+      console.log("Document name being saved:", updatedRow.fileName);
+      const doc_id = updatedRow.id ? updatedRow.id : updatedRow._id;
+      const response = await updateDocHighlightText(doc_id, updatedRow);
+      console.log("Save response:", response);
+      //setTableData([...tableData]);
+      fetchData();
+    } catch (error) {
+      console.error("Failed to update document:", error);
+      
+      // Handle specific error types
+      if (error.code === 'ERR_NETWORK') {
+        setError("Network error. Please check your connection and try again.");
+      } else if (error.response?.status === 404) {
+        setError("Document not found. It may have been deleted.");
+      } else if (error.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else {
+        setError("Failed to update document. Please try again.");
+      }
+    }
   };
 
   const handleBack = () => {
@@ -340,6 +491,21 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
               {/*Project Name <FaArrowRight className="text-gray-500 pt-2" size={16} />*/}{" "}
               {templateName}
             </div>
+            {/* Client Selector */}
+            <div className='mt-2'>
+             
+            
+              {selectedClient && (
+                <div className='mt-2 p-2 bg-blue-50 rounded-md'>
+                  <p className='text-sm text-blue-800'>
+                    <strong>Selected Client:</strong> {getSelectedClientData()?.name}
+                  </p>
+                  <p className='text-xs text-blue-600 mt-1'>
+                    Documents: {getSelectedClientData()?.documents?.length || 0}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
           <div className='w-1/2 text-gray-400 rounded-lg mr-4'>
             <input
@@ -411,22 +577,62 @@ const HighlightTable = ({ highlightsArray, templateId, filename }) => {
                     />
                     {tableData.map((row, rowIndex) => (
                       <th key={rowIndex} className='px-2 text-left'>
-                        <div className='flex items-center justify-between text-sm'>
-                          <input
-                            type='text'
-                            value={row.fileName}
-                            onChange={(e) =>
-                              handleInputChange(e.target.value, rowIndex, false)
-                            }
-                            onBlur={() => handleBlur(rowIndex, false)}
-                            className='h-4 px-2 bg-transparent rounded focus:ring-2 focus:ring-blue-500 max-w-32 truncate'
-                            style={{
-                              textOverflow: 'ellipsis',
-                              overflow: 'hidden',
-                              whiteSpace: 'nowrap'
-                            }}
-                            title={row.fileName} // Show full name on hover
-                          />
+                          {/* Document Name Input */}
+                          <div className='flex items-center justify-between text-sm'>
+                            <div className='flex flex-col relative'>
+                              <div className='flex items-center'>
+                                <input
+                                  type='text'
+                                  value={row.fileName}
+                                  onChange={(e) =>
+                                    handleDocumentNameInput(e.target.value, rowIndex)
+                                  }
+                                  onFocus={() => toggleClientDropdown(rowIndex)}
+                                  onBlur={() => {
+                                    handleBlur(rowIndex, false);
+                                    // Delay hiding dropdown to allow for clicks
+                                    setTimeout(() => {
+                                      setShowClientDropdown(prev => ({ ...prev, [rowIndex]: false }));
+                                    }, 200);
+                                  }}
+                                  className='h-4 px-2 bg-transparent rounded focus:ring-2 focus:ring-blue-500 max-w-32 truncate'
+                                  style={{
+                                    textOverflow: 'ellipsis',
+                                    overflow: 'hidden',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title={row.fileName} // Show full name on hover
+                                />
+                                <button
+                                  onClick={() => toggleClientDropdown(rowIndex)}
+                                  className='ml-1 text-xs text-gray-500 hover:text-gray-700'
+                                  title='Select client'
+                                >
+                                  ▼
+                                </button>
+                              </div>
+                              
+                              {/* Client Dropdown */}
+                              {showClientDropdown[rowIndex] && (
+                                <div className='absolute top-full left-0 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-32 overflow-y-auto min-w-32 client-dropdown-container'>
+                                  <div className='text-xs text-gray-500 px-2 py-1 border-b border-gray-200'>
+                                    Select Client:
+                                  </div>
+                                  {clients.map((client) => (
+                                    <button
+                                      key={client._id}
+                                      onClick={() => handleClientDropdownSelection(client.name, rowIndex)}
+                                      className='w-full text-left px-2 py-1 text-xs hover:bg-blue-50 focus:bg-blue-50'
+                                    >
+                                      {client.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {/* Show detected client */}
+                         
+                            </div>
                           <div className='flex items-center'>
                             {tableData.length > 1 && (
                               <button
