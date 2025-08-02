@@ -1912,7 +1912,7 @@ function HtmlParseTool() {
 
 			setIsTextPatternDetecting(false);
 			setIsAlertOpen(true);
-				setAlertText(`Successfully highlighted ${newMatches.length} underscore group(s) with names: ${newMatches.map(m => m.label).join(', ')}`);
+				setAlertText(`Successfully Extract  highlights`);
 			} catch (error) {
 				console.error('Error in autoDetectTextPatterns:', error);
 				setIsTextPatternDetecting(false);
